@@ -1,11 +1,16 @@
 [project]
 name = "ezsnake"
 version = "0.1.0"
-description = "Add your description here"
+description = "ezsnake is a Python package for working with NetCDF files, a framework for working with python-docs, openpyxl, and also MATLAB datenum conversions into pandas Datetime format, providing an easy-to-use interface for data manipulation and analysis."
 readme = "README.md"
 requires-python = "==3.14.3"
 dependencies = [
-    "netcdf4>=1.7.4",
-    "numpy>=2.4.3",
-    "pandas>=3.0.1",
+    "netcdf4==1.7.4",
+    "numpy==2.4.3",
+    "pandas==3.0.1",
+]
+
+[dependency-groups]
+dev = [
+    "pytest==9.0.2",
 ]
