@@ -1,45 +1,84 @@
+
 # ezsnake
 
-Librería de utilidades para procesamiento de datos científicos en Python.
+Librería de utilidades científicas en Python para NetCDF, manipulación avanzada de Word, utilidades geográficas y funciones tipo MATLAB.
 
-## Módulos disponibles
+---
 
-### 📦 NetCDF (`ezsnake.netcdf`)
+## 📦 Módulos principales
 
-Módulo para lectura, exploración y escritura de archivos NetCDF usando netCDF4.
+### 1. NetCDF (`ezsnake.netcdf`)
+Lectura, exploración y escritura de archivos NetCDF usando netCDF4.
 
-#### Funciones disponibles:
+**Funciones principales:**
+- `load_nc(ruta, variable=None)`
+- `view_att(ruta, variable=None)`
+- `dict2nc(ruta, data)`
 
-- **`load_nc(ruta, variable=None)`**
-  - Carga variables de un archivo NetCDF.
-  - Si `variable` es `None`, retorna todas las variables como diccionario.
-  - Si `variable` es un string, retorna esa variable como numpy.array.
-  - Si `variable` es una lista de strings, retorna una tupla de numpy.array.
+### 2. Word Template Writer (`ezsnake.word_template_writer`)
+Automatización avanzada de plantillas Word (.docx): inserción de figuras, referencias cruzadas, reemplazo de variables, tablas y documentos externos.
 
-- **`view_att(ruta, variable="")`**
-  - Muestra los atributos de una variable específica o los atributos globales del archivo.
-  - Si `variable` es `None`, retorna los atributos globales.
+**API pública:**
+- `insertar_figuras_en_plantilla(doc, diccionario_de_reemplazos)`
+- `insertar_referencias_cruzadas_en_plantilla(doc, diccionario_de_reemplazos)`
+- `reemplazar_texto_en_plantilla(doc, diccionario_de_reemplazos)`
+- `insertar_documento_externo_en_plantilla(doc, diccionario_de_reemplazos)`
+- `rellenar_tablas_en_plantilla(doc, diccionario_de_reemplazos)`
+- `reemplazar_variables_en_tablas(doc, diccionario_de_reemplazos)`
 
-- **`dict2nc(ruta, data)`**
-  - Crea un archivo NetCDF a partir de un diccionario.
-  - El diccionario debe contener la clave `'global_atributes'` y una clave por cada variable.
-  - Cada variable debe incluir `'value'`, `'dims'` y atributos opcionales.
+### 3. MATLAB-like (`ezsnake.matlab`)
+Funciones científicas compatibles con MATLAB para estadística, distribuciones y conversión de fechas:
 
-### 🔧 MATLAB (`ezsnake.matlab`)
+**Funciones principales:**
+- `betacdf`, `betafit`, `betainv`, `betalike`, `betapdf`, `betaln`
+- `datenum_to_datetime`, `datenum_to_pd_datetime`
+- `distchck`, `hist`
+- `logncdf`, `lognfit`, `lognlike`, `lognpdf`, `lognrnd`, `lognstat`
+- `normcdf`, `normfit`, `normlike`, `normpdf`, `norminv`
 
-Módulo para interoperabilidad con MATLAB (en desarrollo).
+### 4. Utilidades (`ezsnake.utils`)
+Funciones para cálculos geográficos, manipulación de datos y utilidades varias:
 
-### 🛠️ Utilidades (`ezsnake.utils`)
+**Funciones principales:**
+- `uv2polar(u, v)`
+- `polar2uv(dir_deg, spd)`
+- `grados_a_km_lat(delta_lat)`
+- `grados_a_km_lon(delta_lon, latitud)`
+- `distancia_entre_dos_puntos(lon2, lat2, lon1, lat1, unidad='km')`
+- `calcular_tiempo_de_viaje(lon2, lon1, lat2, lat1, velocidad, unidad='km')`
+- `timestamp_a_texto_espanol(fecha, mes_y_anio)`
+- `get_excel_variables_name(df_datos_documento)`
+- `get_excel_variable_values(df_datos_documento, nombre_variable)`
 
-Módulo de utilidades generales (en desarrollo).
+---
 
-## Instalación
+## 🚀 Instalación
 
+Desde PyPI:
+```bash
+pip install ezsnake
+```
+
+Desde el repositorio (editable):
 ```bash
 pip install -e .
 ```
 
-## Uso básico
+---
+
+## 📋 Requerimientos
+
+- Python >= 3.11
+- netcdf4 >= 1.7.4
+- numpy >= 2.0
+- openpyxl >= 3.1
+- pandas >= 2.0
+- python-docx >= 1.1
+- scipy >= 1.17.1
+
+---
+
+## 📝 Ejemplo de uso
 
 ```python
 from ezsnake.netcdf import load_nc, view_att, dict2nc
@@ -64,4 +103,14 @@ data_dict = {
 }
 dict2nc('nuevo_archivo.nc', data_dict)
 ```
+
+---
+
+## 👤 Autor y créditos
+
+***********
+by BelloDev  
+agregado 2026/05/25  
+ultima revision 2026/05/25
+***********
 
