@@ -20,6 +20,10 @@ dependencies = [
     "scipy>=1.17.1",
 ]
 
+authors = [
+    { name = "Fernando Bello Fuentes (BelloDev)", email = "fernandojbf123@gmail.com" },
+]
+
 [dependency-groups]
 dev = [
     "pytest>=9.0",
