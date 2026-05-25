@@ -1,16 +1,25 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ezsnake"]
+
 [project]
 name = "ezsnake"
 version = "0.1.0"
-description = "ezsnake is a Python package for working with NetCDF files, a framework for working with python-docs, openpyxl, and also MATLAB datenum conversions into pandas Datetime format, providing an easy-to-use interface for data manipulation and analysis."
+description = "ezsnake is a Python package for working with NetCDF files, a framework for working with python-docx, openpyxl, and also MATLAB datenum conversions into pandas Datetime format, providing an easy-to-use interface for data manipulation and analysis."
 readme = "README.md"
-requires-python = "==3.14.3"
+requires-python = ">=3.11"
 dependencies = [
-    "netcdf4==1.7.4",
-    "numpy==2.4.3",
-    "pandas==3.0.1",
+    "netcdf4>=1.7.4",
+    "numpy>=2.0",
+    "openpyxl>=3.1",
+    "pandas>=2.0",
+    "python-docx>=1.1",
 ]
 
 [dependency-groups]
 dev = [
-    "pytest==9.0.2",
+    "pytest>=9.0",
 ]

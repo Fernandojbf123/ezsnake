@@ -4,7 +4,7 @@ Módulo para lectura, exploración y escritura de archivos NETCDF usando netCDF4
 
 import numpy as np
 from netCDF4 import Dataset
-from typing import List, Union, Dict, Any
+from typing import List, Union, Dict, Any, Literal
 
 def load_nc(ruta: str, variable: Union[str, List[str], None] = None):
     """
@@ -36,42 +36,120 @@ def view_att(ruta: str, variable: str = ""):
                 raise ValueError(f"La variable '{variable}' no existe en el archivo.")
             return {att: getattr(nc.variables[variable], att) for att in nc.variables[variable].ncattrs()}
 
-def dict2nc(ruta: str, data: Dict[str, Any]):
+def dict2nc(ruta_salida: str, 
+            data: Dict[str, Any],
+            formato: Literal['NETCDF4', 'NETCDF4_CLASSIC', 'NETCDF3_CLASSIC', 'NETCDF3_64BIT_OFFSET', 'NETCDF3_64BIT_DATA'] = 'NETCDF4') -> None:
     """
     Crea un archivo NetCDF a partir de un diccionario con atributos globales y variables.
     El diccionario debe tener la clave 'global_atributes' y una clave por cada variable.
-    Cada variable debe tener 'value', 'dims' y atributos opcionales.
+    Cada variable debe tener las siguientes claves:
+    - 'value': numpy.array con los datos de la variable
+    - 'dims': lista de strings con los nombres de las dimensiones de la variable
+    - 'attrs': diccionario con atributos de la variable (opcional)
+        - 'units': string con las unidades de la variable (opcional)
+        - 'long_name': string con el nombre largo de la variable (opcional)
+        - '_FillValue': valor para representar datos faltantes (opcional)
+        
+    se puede usar la clase BuildNetCDFVariable para construir cada variable de forma más ordenada.
+    
+    dict_ejemplo = {
+        'global_atributes': {
+            'titulo': 'Ejemplo de archivo NetCDF',
+            'institucion': 'Mi Institución',
+            'fuente': 'Simulación'
+        },
+        'T': {
+            'value': np.random.rand(10, 20),
+            'dims': ['lat', 'lon'],
+            'attrs':{
+                'long_name': 'Temperatura',
+                'units': 'K',
+                '_FillValue': -9999.0
+            }  
+        },
+        'Pa': {
+            'value': np.random.rand(10, 20),
+            'dims': ['lat', 'lon'],
+            'attrs':{
+                'long_name': 'Presion atmosferica',
+                'units': 'psi'
+            }
+        },
+        'lat': {
+            'value': np.linspace(-90, 90, 10),
+            'dims': ['lat'],
+            'attrs':{
+                'long_name': 'Latitud',
+                'units': 'degrees_north'
+            }
+        },
+        'lon': {
+            'value': np.linspace(-180, 180, 20),
+            'dims': ['lon'],
+            'attrs':{
+                'long_name': 'Longitud',
+                'units': 'degrees_east'
+            }
+        }
+    
     """
-    from collections import OrderedDict
-    with Dataset(ruta, 'w') as nc:
-        # Crear dimensiones
-        dims_dict = OrderedDict()
-        for var, vdata in data.items():
-            if var == 'global_atributes':
-                continue
-            dims = vdata.get('dims', [])
-            for i, d in enumerate(dims):
-                if d not in dims_dict:
-                    dims_dict[d] = vdata['value'].shape[i]
-        for d, size in dims_dict.items():
-            nc.createDimension(d, size)
-        # Atributos globales
-        for att, val in data.get('global_atributes', {}).items():
-            setattr(nc, att, val)
-        # Variables
-        for var, vdata in data.items():
-            if var == 'global_atributes':
-                continue
-            dims = vdata.get('dims', [])
-            # Forzar a float todos los valores
-            value = np.array(vdata['value'], dtype=float)
-            # Manejar _FillValue correctamente
-            fill_value = vdata.get('_FillValue', None)
-            create_var_kwargs = {}
-            if fill_value is not None:
-                create_var_kwargs['fill_value'] = fill_value
-            var_obj = nc.createVariable(var, value.dtype, dims, **create_var_kwargs)
-            var_obj[:] = value
-            for att, val in vdata.items():
-                if att not in ['value', 'dims', '_FillValue']:
-                    setattr(var_obj, att, val)
+    with Dataset(ruta_salida, "w", format=formato) as ds:
+
+        # 1. AGREGAR ATRIBUTOS GLOBALES
+        global_attrs = data.get("global_atributes", {})
+
+        for attr_name, attr_value in global_attrs.items():
+            setattr(ds, attr_name, attr_value)
+
+        # 2. DETECTAR Y CREAR DIMENSIONES
+        dimensiones = {}
+        for variable_name, variable_info in data.items():
+            if variable_name != "global_atributes":
+                values = np.asarray(variable_info["value"])
+                dims = variable_info["dims"]
+                for dim_name, dim_size in zip(dims, values.shape):
+                    if dim_name not in dimensiones:
+                        dimensiones[dim_name] = dim_size
+
+        # Crear dimensiones en el archivo
+        for dim_name, dim_size in dimensiones.items():
+            ds.createDimension(dim_name, dim_size)
+
+        # 3. CREAR VARIABLES
+        for variable_name, variable_info in data.items():
+
+            if variable_name != "global_atributes":
+                values = np.asarray(variable_info["value"])
+                dims = tuple(variable_info["dims"])
+                attrs = variable_info.get("attrs", {})
+
+                # Detectar tipo netCDF
+                dtype = values.dtype
+
+                # Manejo especial de _FillValue
+                # Debe pasarse al crear variable
+                fill_value = attrs.pop("_FillValue", None)
+                if fill_value is not None:
+                    var = ds.createVariable(
+                        variable_name,
+                        dtype,
+                        dims,
+                        fill_value=fill_value,
+                        zlib=True)
+
+                else:
+                    var = ds.createVariable(
+                        variable_name,
+                        dtype,
+                        dims,
+                        zlib=True)
+
+                # Escribir datos
+                var[:] = values
+
+                # Agregar atributos
+                for attr_name, attr_value in attrs.items():
+                    if attr_value is not None:
+                        setattr(var, attr_name, attr_value)
+
+    print(f"Archivo NetCDF guardado en: {ruta_salida}")
