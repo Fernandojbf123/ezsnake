@@ -12,6 +12,11 @@ def load_nc(ruta: str, variable: Union[str, List[str], None] = None):
     Si variable es None, retorna todo el archivo como un dict de numpy.array.
     Si es un string, retorna la variable como numpy.array.
     Si es una lista de strings, retorna una tupla de numpy.array en el mismo orden.
+    ***********
+    by BelloDev
+    agregado 2026/05/25
+    ultima revision 2026/05/25
+    ***********
     """
     with Dataset(ruta, 'r') as nc:
         if variable is None:
@@ -27,6 +32,11 @@ def load_nc(ruta: str, variable: Union[str, List[str], None] = None):
 def view_att(ruta: str, variable: str = ""):
     """
     Muestra los atributos de una variable o los atributos globales si variable es None.
+    ***********
+    by BelloDev
+    agregado 2026/05/25
+    ultima revision 2026/05/25
+    ***********
     """
     with Dataset(ruta, 'r') as nc:
         if variable is None:
@@ -92,6 +102,11 @@ def dict2nc(ruta_salida: str,
             }
         }
     
+    ***********
+    by BelloDev
+    agregado 2026/05/25
+    ultima revision 2026/05/25
+    ***********
     """
     with Dataset(ruta_salida, "w", format=formato) as ds:
 

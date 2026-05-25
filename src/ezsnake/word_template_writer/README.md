@@ -2,16 +2,15 @@
 
 Módulo para manipular plantillas de Word (.docx) con funciones de alto nivel para insertar figuras, referencias cruzadas, texto, documentos externos y tablas.
 
-## 📦 Instalación
+    reemplazar_texto_en_plantilla,
+    rellenar_tablas_en_plantilla,
+# Aplicar transformaciones en orden
 
-Dependencias requeridas:
-```bash
-pip install python-docx pandas
-```
-
-## 🚀 Uso Básico
+## 🚀 Uso Básico y Ejemplo de Construcción de Diccionarios
 
 ```python
+import os
+import pandas as pd
 from docx import Document
 from word_template_writer import (
     insertar_figuras_en_plantilla,
@@ -25,15 +24,58 @@ from word_template_writer import (
 # Abrir plantilla
 doc = Document('plantilla.docx')
 
-# Crear diccionario de reemplazos
-diccionario = {
-    "<<orden_servicio>>": "12345",
-    "<<fig_mapas>>": [...],  # Ver sección de figuras
-    "<<external_doc_plan>>": "plan_crucero.docx",
-}
+# Ejemplo: Construir diccionario de figuras a partir de un DataFrame
+def construir_diccionario_agregar_figuras(df_datos_documento: pd.DataFrame) -> dict:
+    dict_documento = {}
+    varnames = get_excel_variables_name(df_datos_documento)
+    for varname in varnames:
+        if varname.startswith("fig_"):
+            array = []
+            varvalues = get_excel_variable_values(df_datos_documento, nombre_variable=varname) or []
+            dict_figura = FiguraSchema(ruta_a_figura="", titulo="", tamanio=6, bookmark="")
+            for fig_name in varvalues:
+                ruta_a_la_carpeta_de_imagenes = ""
+                dict_figura.set_ruta(ruta_a_carpeta_de_imagenes, fig_name, "jpg")
+                dict_figura.set_tamanio(6)
+                dict_figura.set_bookmark(fig_name)
+                dict_figura.set_titulo("")
+                array.append(dict_figura.to_dict())
+            if array:
+                dict_documento["<<"+varname+">>"] = array
+    return dict_documento
+
+# Ejemplo: Diccionario de reemplazos para texto
+diccionario = {}
+diccionario["<<fecha_inicio_vigencia>>"] = "2026-05-01"
+diccionario["<<fecha_final_vigencia>>"] = "2026-05-31"
+
+# Ejemplo: Diccionario de documentos externos
+def construir_diccionario_de_reemplazos_para_docs_externos(diccionario_de_reemplazos: dict):
+    rutas_a_carpeta = ""
+    archivos = ["ejemplo1.docx", "ejemplo2.docx"]
+    rutas = [os.path.join(rutas_a_carpeta, archivo) for archivo in archivos]
+    diccionario_de_reemplazos["<<external_doc_plan_de_crucero>>"] = rutas
+
+# Ejemplo: Diccionario de tablas
+def construir_diccionario_de_reemplazos_para_tablas(diccionario_de_reemplazos: dict, doc: object):
+    tabla1 = pd.DataFrame({})
+    opciones_de_tabla = OpcionesTabla()
+    estilos_de_tabla = EstilosTabla(doc)
+    estilos_de_tabla.set_estilo_por_defecto("texto_tablas_centrado")
+    diccionario_de_reemplazos["<<tabla_plan>>"] = {
+        "tabla": tabla1,
+        "estilos_de_tabla": estilos_de_tabla,
+        "opciones_de_tabla": opciones_de_tabla
+    }
 
 # Aplicar transformaciones en orden
 reemplazar_texto_en_plantilla(doc, diccionario)
+reemplazar_variables_en_tablas(doc, diccionario)
+insertar_figuras_en_plantilla(doc, diccionario)
+insertar_referencias_cruzadas_en_plantilla(doc, diccionario)
+insertar_documento_externo_en_plantilla(doc, diccionario)
+doc.save('documento_final.docx')
+```
 reemplazar_variables_en_tablas(doc, diccionario)
 insertar_figuras_en_plantilla(doc, diccionario)
 insertar_referencias_cruzadas_en_plantilla(doc, diccionario)

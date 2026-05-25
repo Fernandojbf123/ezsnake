@@ -6,7 +6,10 @@ from .utils import (
     distancia_entre_dos_puntos,
     calcular_tiempo_de_viaje,
 )
-from .coords_converter import convertir_cualquier_coordenada_a_grados_decimales
+from .coords_converter import (
+    convertir_cualquier_coordenada_a_grados_decimales,
+    convertir_cualquier_coordenada_a_grados_y_minutos
+)
 
 __all__ = [
     "polar2uv",
@@ -16,4 +19,7 @@ __all__ = [
     "distancia_entre_dos_puntos",
     "calcular_tiempo_de_viaje",
     "convertir_cualquier_coordenada_a_grados_decimales",
+    "convertir_cualquier_coordenada_a_grados_y_minutos"
 ]
+
+__author__ = "BelloDev"

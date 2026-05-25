@@ -502,46 +502,45 @@ class OpcionesTabla:
         return self._opciones.get("eliminar_fila_marcador", True)
 
 
-class FiguraConfig:
+class FiguraSchema:
     """
-    Clase para configurar una figura individual.
+    Clase para construir un diccionario de figuras con sus atributos.
     
     Atributos:
-        ruta: Ruta al archivo de imagen
-        titulo: Título de la figura (caption)
-        tamanio: Tamaño de la figura en cm
-        bookmark: Nombre del bookmark para referencias cruzadas
+    ruta: Ruta completa a la imagen (string)
+    titulo: Título de la figura (string)
+    tamanio: Tamaño de la figura (int, por ejemplo, 6 para 6 cm de ancho)
+    bookmark: Bookmark para la figura (string). Debe iniciar con "Ref_" seguido del nombre de la figura.
     
-    Example:
-        >>> figura = FiguraConfig(
-        ...     ruta="mapa.png",
-        ...     titulo="Mapa de ubicación",
-        ...     tamanio=6,
-        ...     bookmark="_Ref_Mapa1"
-        ... )
-        >>> figura_dict = figura.to_dict()
+    Ejemplo:
+    En la plantilla de word la variable donde se inserta la figura se llamaría <<fig_ejemplo>>, 
+    en el excel que tiene los datos necesarios para la plantilla debe existir, en la columna 0, la variable <<fig_ejemplo>>
+    y en la misma fila de esa variable, a partir de la columna 1 deben estar los nombres de los archivos de imagen correspondientes a esa figura (sin extensión).
+    
+    Entonces, este diccionario tendrá las características de la figura. Y deberá usarse para cada una de las figuras asociadas a esa variable. 
+    Por ejemplo, si en el excel hay 1 filas con la variable <<fig_ejemplo>>, y esta tiene 3 figuras, cada figura deberá tener la ruta, título, tamaño y bookmark correspondiente a cada imagen. 
+    Y el bookmark de cada imagen debe iniciar con "Ref_" seguido del nombre del archivo de imagen (sin extensión). 
+    Por ejemplo, si el nombre del archivo de imagen es "ejemplo1",
+    
+    entonces el bookmark para esa figura sería "Ref_fig_ejemplo".
+    de bookmark: "Ref_fig_1"
+
+    Métodos:
+    set_ruta: Establece la ruta completa a la imagen a partir de una carpeta, nombre de archivo y extensión.
+    set_tamanio: Establece el tamaño de la figura.
+    set_bookmark: Establece el bookmark para la figura.
+    set_titulo: Establece el título de la figura.
+    return_dict: Devuelve un diccionario con los atributos de la figura.
     """
     
     def __init__(
         self,
-        ruta: str,
+        ruta_a_figura: str = "",
         titulo: str = "",
-        tamanio: Union[int, float] = 6,
+        tamanio: int = 6,
         bookmark: str = ""
     ):
-        """
-        Inicializa FiguraConfig con los parámetros proporcionados.
-        
-        Args:
-            ruta: Ruta al archivo de imagen
-            titulo: Título de la figura (caption). Vacío = sin título
-            tamanio: Tamaño de la figura en cm (default: 6)
-            bookmark: Nombre del bookmark para referencias cruzadas. Vacío = sin bookmark
-        
-        Raises:
-            ValueError: Si los parámetros no son válidos
-        """
-        self.ruta = ruta
+        self.ruta = ruta_a_figura
         self.titulo = titulo
         self.tamanio = tamanio
         self.bookmark = bookmark
@@ -552,7 +551,7 @@ class FiguraConfig:
         if not isinstance(self.ruta, str) or not self.ruta:
             raise ValueError("ruta debe ser string no vacío")
         
-        if not isinstance(self.tamanio, (int, float)) or self.tamanio <= 0:
+        if not isinstance(self.tamanio, int) or self.tamanio <= 0:
             raise ValueError("tamanio debe ser número positivo")
         
         # Validar que el archivo existe (opcional, puede comentarse si se prefiere validación lazy)
@@ -563,7 +562,24 @@ class FiguraConfig:
             # Validar formato de bookmark (opcional)
             raise ValueError("bookmark debe comenzar con '_Ref_' para ser válido en referencias cruzadas") 
     
+    def set_ruta(self, ruta_a_carpeta_de_imagenes: str, nombre_de_archivo: str, extension: str = "jpg"):
+        carpeta = ruta_a_carpeta_de_imagenes
+        ruta_completa = os.path.join(carpeta, nombre_de_archivo+"."+extension)
+        self.ruta = ruta_completa.strip()
     
+    def set_tamanio(self, tamanio: int):
+        self.tamanio = tamanio
+    
+    def set_bookmark(self, nombre_de_archivo: str):
+        bookmark = "Ref_"+nombre_de_archivo
+        self.bookmark = bookmark.strip()
+        
+    def set_titulo(self, titulo_de_figura: str):
+        titulo = titulo_de_figura.strip() 
+        if titulo != "":
+            titulo = titulo if titulo.endswith(".") else titulo + "."
+        self.titulo = titulo
+           
     def to_dict(self) -> dict:
         """
         Retorna diccionario con la configuración de la figura.
