@@ -1,4 +1,4 @@
-from .utils import (
+from .functions import (
     polar2uv,
     uv2polar,
     grados_a_km_lat,
