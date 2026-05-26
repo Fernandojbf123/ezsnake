@@ -10,98 +10,10 @@ name = "ezsnake"
 version = "0.1.1"
 
 description = """ 
-### ESPAÑOL ####
- 
-ezsnake es un paquete de Python que incluye 3 módulos:
-
-1. word_template_writer:
-Este módulo es en realidad un framework para la creación de documentos Word.
-Este framework simplifica el proceso de creación y manipulación de plantillas de documentos Word.
-Proporciona una API con 5 funciones para construir un documento:
-    - insertar_figuras_en_plantilla: Inserta figuras con o sin leyendas.
-    - insertar_referencias_cruzadas_en_plantilla: Crea referencias cruzadas a figuras.
-    - reemplazar_texto_en_plantilla: Reemplaza variables de texto en la plantilla.
-    - insertar_documento_externo_en_plantilla: Inserta documentos Word externos.
-    - rellenar_tablas_en_plantilla: Rellena tablas con datos de DataFrame.
-
-Agradecimientos especiales al autor de python-docx (Steve Canny) por proporcionar la funcionalidad subyacente para la manipulación de documentos Word.
-
-2. utils:
-Este módulo proporciona funciones utilitarias para la manipulación y análisis de datos, incluyendo funciones para convertir MATLAB datenum a datetime de Python o pandas Datetime, y otras funciones auxiliares para el procesamiento de datos, tales como:
-    - datenum_to_datetime: Convierte MATLAB datenum a datetime de Python.
-    - datenum_to_pandas_datetime: Convierte MATLAB datenum a pandas Datetime.
-    - convertir_cualquier_coordenada_a_grados_decimales: Convierte coordenadas entre diferentes formatos (por ejemplo, DMS a grados decimales).
-    - convertir_cualquier_coordenada_a_grados_y_minutos: Convierte coordenadas entre diferentes formatos (por ejemplo, DMS a grados y minutos).
-    - timestamp_a_texto_espanol: Convierte un timestamp a formato de texto en español (por ejemplo, "2024-06-01" a "1 de junio de 2024").
-    - get_excel_variables_names: Obtiene los nombres de las variables de un archivo Excel usando openpyxl.
-    - get_excel_variable_values: Obtiene los valores de las variables de un archivo Excel usando openpyxl.
-    - distancia_entre_dos_puntos: Calcula la distancia entre dos puntos dadas sus coordenadas en grados decimales.
-    - polar2uv y uv2polar: Convierte entre coordenadas polares y cartesianas.
-
-Este módulo se actualizará en el futuro para incluir más funciones utilitarias para la manipulación y análisis de datos en ciencia de datos.
-
-3. netcdf:
-
-Este módulo contiene 2 partes:
-3.1. Funciones para la carga sencilla de archivos NetCDF, variables y atributos.
-    - load_nc: Carga variables de un archivo NetCDF.
-    - view_att: Visualiza los atributos de un archivo NetCDF.
-
-3.2. Un framework para la escritura de archivos NetCDF utilizando un diccionario como entrada.
-El framework simplifica el proceso de creación de archivos NetCDF proporcionando una API con 3 funciones:
-    - dict2nc: Crea un archivo NetCDF a partir de un diccionario.
-    - BuildNetCDFVariable: Una clase para construir variables NetCDF con atributos y dimensiones (este es el esquema).
-
-Si te gusta este paquete, por favor considera darle una estrella en GitHub y compartirlo con tus colegas. ¡Tu apoyo es muy apreciado!
-
-
-### ENGLISH #### 
-Most functions (API) in this package are in Spanish because community asked it for.
-The documentation is in English for a wider audience. I'm planning to write an english version of the functions in the future, but for now, the Spanish version is available and can be used by anyone who understands Spanish.
-
-ezsnake is a Python package which includes 3 modules:
-1. word_template_writer:
-This modudle is actually a framework for creating Word documents. 
-This framework simplifies the process of creating and manipulating Word documents templates. 
-It provides an API with 5 functions to build a document:
-    - insertar_figuras_en_plantilla: Insert figures with/without captions.
-    - insertar_referencias_cruzadas_en_plantilla: Create cross-references to figures.
-    - reemplazar_texto_en_plantilla: Replace text variables in template.
-    - insertar_documento_externo_en_plantilla: Insert external Word documents.
-    - rellenar_tablas_en_plantilla: Fill tables with DataFrame data.
-
-Special thanks to python-docx author (Steve Canny) for providing the underlying functionality for Word document manipulation.
-
-2. utils:
-This module provides utility functions for data manipulation and analysis, including functions for converting MATLAB datenum to datetime or pandas Datetime format, and other helper functions for data processing such as:
-    - datenum_to_datetime: Convert MATLAB datenum to Python datetime.
-    - datenum_to_pandas_datetime: Convert MATLAB datenum to pandas Datetime.
-    - convertir_cualquier_coordenada_a_grados_decimales: Convert coordinates between different formats (e.g., DMS to decimal degrees).
-    - convertir_cualquier_coordenada_a_grados_y_minutos: Convert coordinates between different formats (e.g., DMS to degrees and minutes).
-    - timestamp_a_texto_espanol: Convert timestamp to Spanish text format (e.g., "2024-06-01" to "1 de junio de 2024").
-    - get_excel_variables_names: Get variable names from an Excel file using openpyxl.
-    - get_excel_variable_values: Get variable values from an Excel file using openpyxl.
-    - distancia_entre_dos_puntos: Calculate the distance between two points given their coordinates in decimal degrees.
-    - polar2uv and uv2polar: Convert between polar and Cartesian coordinates.
-
-This module will be upgraded in the future to include more utility functions for data manipulation and analysis in data science.
-
-3. netcdf:
-
-This module contains 2 parts:
-3.1. Functions for easy loading NetCDF files, variables and attributes.
-    - load_nc: Load variables from a NetCDF file.
-    - view_att: View the attributes of a NetCDF file.
-
-3.2. A framework for writing NetCDF file using a dictionary as input.
-The framework simplifies the process of creating NetCDF files by providing an API with 3 functions:
-    - dict2nc: Create a NetCDF file from a dictionary.
-    - BuildNetCDFVariable: A class to build NetCDF variables with attributes and dimensions ( this is the schema)
-     
-If you like this package, please consider giving it a star on GitHub and sharing it with your colleagues. Your support is greatly appreciated!
-
-Best regards and happy coding mates!
-BelloDev """
+Paquete Python para manipulación sencilla de Word, datos y NetCDF. 
+Python package for easy handling of Word, data, and NetCDF files.
+Doc: https://github.com/Fernandojbf123/ezsnake
+"""
 
 readme = "README.md"
 requires-python = ">=3.11"
