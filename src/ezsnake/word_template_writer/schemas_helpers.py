@@ -8,7 +8,7 @@ and figure configuration with validation and convenient setter methods.
 Classes:
     - EstilosTabla: Configuration for table cell styling (colors, alignment, styles)
     - OpcionesTabla: Configuration for table behavior (merge cells, flatten MultiIndex)
-    - FiguraConfig: Configuration for individual figures
+    - FigSchema: Configuration for individual figures
     
 Functions:
     - get_estilos_disponibles: Extract available style names from a Word document
@@ -502,7 +502,7 @@ class OpcionesTabla:
         return self._opciones.get("eliminar_fila_marcador", True)
 
 
-class FiguraSchema:
+class FigSchema:
     """
     Clase para construir un diccionario de figuras con sus atributos.
     
@@ -562,8 +562,8 @@ class FiguraSchema:
             # Validar formato de bookmark (opcional)
             raise ValueError("bookmark debe comenzar con '_Ref_' para ser válido en referencias cruzadas") 
     
-    def set_ruta(self, ruta_a_carpeta_de_imagenes: str, nombre_de_archivo: str, extension: str = "jpg"):
-        carpeta = ruta_a_carpeta_de_imagenes
+    def set_ruta(self, ruta_a_la_carpeta_de_imagenes: str, nombre_de_archivo: str, extension: str = "jpg"):
+        carpeta = ruta_a_la_carpeta_de_imagenes
         ruta_completa = os.path.join(carpeta, nombre_de_archivo+"."+extension)
         self.ruta = ruta_completa.strip()
     

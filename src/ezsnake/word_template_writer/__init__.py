@@ -15,7 +15,7 @@ API Pública (en español):
 Clases de Configuración:
     - EstilosTabla: Configuración de estilos para tablas (colores, alineación, estilos)
     - OpcionesTabla: Opciones de comportamiento para tablas (merge, MultiIndex)
-    - FiguraConfig: Configuración individual de figuras
+    - FigSchema: Configuración individual de figuras
     
 Utilidades:
     - insert_line_feed: Inserta nuevos párrafos usando XML
@@ -83,7 +83,7 @@ from .api import (
 from .schemas_helpers import (
     EstilosTabla,
     OpcionesTabla,
-    FiguraConfig,
+    FigSchema,
     get_estilos_disponibles,
 )
 
@@ -101,7 +101,7 @@ __all__ = [
     # Clases de configuración
     'EstilosTabla',
     'OpcionesTabla',
-    'FiguraConfig',
+    'FigSchema',
     # Utilidades
     'insert_line_feed',
     'get_estilos_disponibles',
