@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 
 from ..utils.utils import get_excel_variables_name, get_excel_variable_values
-from .schemas_helpers import FiguraSchema, OpcionesTabla, EstilosTabla
+from .schemas_helpers import FigSchema, OpcionesTabla, EstilosTabla
 
 ############################ DICCIONARIO DE REEMPLAZOS PARA FIGURAS ############################
 
@@ -14,7 +14,7 @@ from .schemas_helpers import FiguraSchema, OpcionesTabla, EstilosTabla
 def construir_diccionario_agregar_figuras(df_datos_documento: pd.DataFrame) -> dict:
     """
     Construye un diccionario con las figuras a agregar al documento, a partir de un dataframe de pandas con los datos del documento.
-    El diccionario de cada figura tiene la estructura que se indica en el esquema FiguraSchema.
+    El diccionario de cada figura tiene la estructura que se indica en el esquema FigSchema.
     Si la variable tiene una o más figuras éstas se agrupan en un array de diccionarios; un diccionario por cada figura.
     Recuerda que la variable debe comenzar por "fig_" para ser reconocida como una variable que contiene las figuras.
     """
@@ -25,11 +25,11 @@ def construir_diccionario_agregar_figuras(df_datos_documento: pd.DataFrame) -> d
         if varname.startswith("fig_"):
             array=[] # Acá se guardarán los diccionarios de cada figura asociada a la variable.
             varvalues = get_excel_variable_values(df_datos_documento = df_datos_documento, nombre_variable = varname) or []
-            dict_figura = FiguraSchema(ruta_a_figura = "", titulo = "", tamanio = 6, bookmark = "") # uso el esquema (es una guia para construir el diccionario de cada figura)
+            dict_figura = FigSchema(ruta_a_figura = "", titulo = "", tamanio = 6, bookmark = "") # uso el esquema (es una guia para construir el diccionario de cada figura)
             
             for fig_name in varvalues:
                 ruta_a_la_carpeta_de_imagenes = ""
-                dict_figura.set_ruta(ruta_a_carpeta_de_imagenes = ruta_a_la_carpeta_de_imagenes, nombre_de_archivo = fig_name, extension = "jpg")
+                dict_figura.set_ruta(ruta_a_la_carpeta_de_imagenes = ruta_a_la_carpeta_de_imagenes, nombre_de_archivo = fig_name, extension = "jpg")
                 dict_figura.set_tamanio(6) 
                 dict_figura.set_bookmark(fig_name)
                 dict_figura.set_titulo("") # se puede leer de la siguiente variable del excel o colocarse manualmente acá.

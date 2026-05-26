@@ -32,7 +32,7 @@ def construir_diccionario_agregar_figuras(df_datos_documento: pd.DataFrame) -> d
         if varname.startswith("fig_"):
             array = []
             varvalues = get_excel_variable_values(df_datos_documento, nombre_variable=varname) or []
-            dict_figura = FiguraSchema(ruta_a_figura="", titulo="", tamanio=6, bookmark="")
+            dict_figura = FigSchema(ruta_a_figura="", titulo="", tamanio=6, bookmark="")
             for fig_name in varvalues:
                 ruta_a_la_carpeta_de_imagenes = ""
                 dict_figura.set_ruta(ruta_a_carpeta_de_imagenes, fig_name, "jpg")
