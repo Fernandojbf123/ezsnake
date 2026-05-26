@@ -92,7 +92,7 @@ def grados_a_km_lon(delta_lon: float, latitud: float) -> float:
     return resultado
 
 
-def distancia_entre_dos_puntos(lon2, lat2, lon1, lat1, unidad='km'):
+def distancia_entre_dos_puntos(lon2: float, lat2:float, lon1: float, lat1: float, unidad='km') -> float:
     """"
     Calcula la distancia entre dos coordenadas geográficas 
     Entradas: 
@@ -124,13 +124,13 @@ def distancia_entre_dos_puntos(lon2, lat2, lon1, lat1, unidad='km'):
     return distancia
 
 
-def calcular_tiempo_de_viaje(lon2, lon1, lat2, lat1, velocidad, unidad='km'):
+def calcular_tiempo_de_viaje(lon2: float, lat2: float, lon1: float, lat1: float, speed: float, unidad='km') -> float:
     """ Entradas: 
     lon1 = Float, longitud inicial en grados decimales
     lat1 = Float, latitud inicial en grados decimales
     lon2 = Float, longitud final en grados decimales
     lat2 = Float, latitud final en grados decimales
-    velocidad = Float, velocidad de viaje en km/h o nudos (dependiendo de la unidad)
+    speed = Float, velocidad de viaje en km/h o nudos (dependiendo de la unidad)
     unidad = String, 'km' para kilómetros o 'mn' para millas náuticas  
     
     Salida:
