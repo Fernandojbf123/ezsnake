@@ -144,15 +144,15 @@ def calcular_tiempo_de_viaje(lon2: float, lat2: float, lon1: float, lat1: float,
     ultima revision 2026/05/25
     ***********
     """
-    velocidad = abs(velocidad)
+    speed = abs(speed)
     
     distancia = distancia_entre_dos_puntos(lon2, lat2, lon1, lat1, unidad)
     if unidad == 'mn':
         # Convertir velocidad de nudos a km/h (1 nudo = 1.852 km/h)
-        velocidad = velocidad * 1.852
+        speed = speed * 1.852
 
     # Calcular tiempo de viaje en horas
-    tiempo_horas = distancia / velocidad
+    tiempo_horas = distancia / speed
     return tiempo_horas
 
 
