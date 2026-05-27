@@ -23,7 +23,7 @@ __all__ = [
     "betainv",
     "betalike",
     "betapdf",
-    "datenum_converter",
+    "datenum_to_datetime",
     "datenum_to_pd_datetime",
     "distchck",
     "hist",
