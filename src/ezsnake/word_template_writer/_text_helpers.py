@@ -18,15 +18,62 @@ def replace_text_variables_in_paragraph(paragraph, lista_variables):
     
     Esta función reemplaza todas las variables en un solo paso, evitando problemas
     de estado cuando hay múltiples variables en el mismo párrafo.
+    
+    Casos especiales:
+        - Si el valor es una lista y el marcador es la única variable en el párrafo,
+          se crearán múltiples párrafos (uno por cada elemento de la lista).
+        - Si hay múltiples variables en el párrafo o hay texto adicional,
+          solo se usa el primer elemento de la lista.
     """
+    from docx.oxml import OxmlElement
+    from docx.text.paragraph import Paragraph
+    
     # Obtener el texto completo del párrafo
     full_text = "".join(run.text for run in paragraph.runs)
     
-    # Reemplazar todas las variables en el texto completo
+    # Caso especial: Una sola variable con valor tipo lista que ocupa todo el párrafo
+    if len(lista_variables) == 1:
+        key, value = lista_variables[0]
+        # Verificar si es una lista con múltiples elementos y el marcador ocupa todo el párrafo
+        if isinstance(value, list) and len(value) > 1 and full_text.strip() == key:
+            # Copiar el estilo del párrafo original
+            estilo_original = paragraph.style
+            formato_original = paragraph.paragraph_format
+            
+            # Modificar el primer párrafo con el primer elemento
+            primer_run = paragraph.runs[0] if paragraph.runs else paragraph.add_run()
+            primer_run.text = str(value[0])
+            for i in range(1, len(paragraph.runs)):
+                paragraph.runs[i].text = ""
+            
+            # Obtener el elemento actual y su padre
+            elemento_actual = paragraph._element
+            
+            # Insertar párrafos adicionales para el resto de elementos
+            for texto in value[1:]:
+                # Crear un nuevo elemento de párrafo
+                nuevo_elemento = OxmlElement('w:p')
+                
+                # Insertar el nuevo párrafo después del anterior
+                elemento_actual.addnext(nuevo_elemento)
+                
+                # Crear objeto Paragraph desde el elemento XML
+                nuevo_parrafo = Paragraph(nuevo_elemento, paragraph._parent)
+                nuevo_parrafo.style = estilo_original
+                
+                # Agregar el texto al nuevo párrafo
+                nuevo_parrafo.add_run(str(texto))
+                
+                # Actualizar el elemento actual para la siguiente iteración
+                elemento_actual = nuevo_elemento
+            
+            return paragraph
+    
+    # Comportamiento estándar: reemplazar variables en el texto
     texto_reemplazado = full_text
     for key, value in lista_variables:
         if key in texto_reemplazado:
-            # Convertir value a string
+            # Convertir value a string (si es lista, tomar el primer elemento)
             new_value = str(value[0]) if isinstance(value, list) else str(value)
             # Reemplazar todas las ocurrencias de esta variable
             texto_reemplazado = texto_reemplazado.replace(key, new_value)
