@@ -1,0 +1,9 @@
+version 0.2.0
+- Ahora incluye la posibilidad de crear secciones:
+una sección puede tener un título, varios párrafos de texto, referencias cruzadas a figuras, multiples figuras.
+- Queda pendiente implementar:
+    - Referencias cruzadas a tablas.
+    - Referencias cruzadas a secciones.
+    - Cambios de estilos para cada parte de la sección.
+
+    
