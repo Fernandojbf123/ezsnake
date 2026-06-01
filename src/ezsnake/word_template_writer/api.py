@@ -36,7 +36,7 @@ def insertar_figuras_en_plantilla(doc, diccionario_de_reemplazos: dict):
                                    contienen listas de figuras a insertar.
     
     Returns:
-        None (el diccionario se muta in-place agregando keys "<<ref_*>>")
+        None (el diccionario de entrada se muta in-place agregando keys "<<ref_*>>")
     
     Casos soportados:
         - Caso 1: Figuras SIN título - titulo="" y bookmark=""
@@ -54,8 +54,8 @@ def insertar_figuras_en_plantilla(doc, diccionario_de_reemplazos: dict):
             
             # Caso 2: Figuras CON título
             "<<fig_mapas>>": [
-                {"ruta": "mapa1.png", "titulo": "Mapa de ubicación", "tamanio": 6, "bookmark": "_Ref_Mapa1"},
-                {"ruta": "mapa2.png", "titulo": "Temperatura del agua", "tamanio": 5, "bookmark": "_Ref_Temp"}
+                {"ruta": "mapa1.png", "titulo": "Mapa de ubicación", "tamanio": 6, "bookmark": "Ref_Mapa1"},
+                {"ruta": "mapa2.png", "titulo": "Temperatura del agua", "tamanio": 5, "bookmark": "Ref_Temp"}
             ],
             
             "<<orden_servicio>>": "12345",  # Variables no-figura se ignoran aquí
@@ -68,8 +68,8 @@ def insertar_figuras_en_plantilla(doc, diccionario_de_reemplazos: dict):
         doc = Document('plantilla.docx')
         diccionario = {
             "<<fig_mapas>>": [
-                {"ruta": "mapa1.png", "titulo": "Ubicación sondas", "tamanio": 6, "bookmark": "_Ref_Mapa1"},
-                {"ruta": "mapa2.png", "titulo": "Temperatura", "tamanio": 5, "bookmark": "_Ref_Temp"}
+                {"ruta": "mapa1.png", "titulo": "Ubicación sondas", "tamanio": 6, "bookmark": "Ref_Mapa1"},
+                {"ruta": "mapa2.png", "titulo": "Temperatura", "tamanio": 5, "bookmark": "Ref_Temp"}
             ],
             "<<fig_fotos>>": [
                 {"ruta": "foto1.png", "titulo": "", "tamanio": 4, "bookmark": ""}
@@ -80,7 +80,7 @@ def insertar_figuras_en_plantilla(doc, diccionario_de_reemplazos: dict):
         insertar_figuras_en_plantilla(doc, diccionario)
         # El diccionario ahora contiene:
         # {
-        #     "<<ref_mapas>>": ["_Ref_Mapa1", "_Ref_Temp"],
+        #     "<<ref_mapas>>": ["Ref_Mapa1", "Ref_Temp"],
         #     "<<ref_fotos>>": None,
         #     ... (keys originales se mantienen)
         # }
@@ -146,7 +146,7 @@ def insertar_referencias_cruzadas_en_plantilla(doc, diccionario_de_reemplazos: d
     Args:
         doc: Objeto Document de python-docx
         diccionario_de_reemplazos: Diccionario retornado/mutado por insertar_figuras_en_plantilla
-                                  Formato: {"<<ref_demo>>": ["_Ref_Fig_Mapa1", "_Ref_Fig_Temp"], ...}
+                                  Formato: {"<<ref_demo>>": ["Ref_Fig_Mapa1", "Ref_Fig_Temp"], ...}
     
     Comportamiento:
         - Busca variables que empiecen con "<<ref_" en los párrafos
@@ -234,27 +234,48 @@ def reemplazar_texto_en_plantilla(doc, diccionario_de_reemplazos):
         diccionario_de_reemplazos: Diccionario donde las claves son los marcadores de posición 
                                   a buscar (por ejemplo, "<<orden_de_servicio>>") y los valores 
                                   son los textos que los reemplazarán (ej: "12345").
+                                  Los valores pueden ser strings o listas de strings.
     
     Comportamiento:
         - Ignora marcadores de figuras ("<<fig_*>>"), referencias ("<<ref_*>>") y 
           documentos externos ("<<ruta_plan_de_crucero>>")
         - Procesa todas las variables de texto en cada párrafo de una sola vez
         - Preserva el formato del primer run del párrafo
+        - Si el valor es una lista y el marcador ocupa todo el párrafo:
+          * Se crean múltiples párrafos (uno por cada elemento de la lista)
+          * Se preserva el estilo del párrafo original en todos los nuevos párrafos
+        - Si hay texto adicional o múltiples marcadores en el mismo párrafo:
+          * Solo se usa el primer elemento de la lista
     
     Ejemplo de uso:
         from docx import Document
         from word_template_writer import reemplazar_texto_en_plantilla
         
         doc = Document('plantilla.docx')
+        
+        # Caso 1: Reemplazo simple con strings
         diccionario = {
             "<<orden_servicio>>": "12345",
             "<<cliente>>": "ACME Corporation",
             "<<fecha>>": "21/05/2026",
-            "<<fig_mapa>>": [...],  # Se ignora aquí
+        }
+        
+        # Caso 2: Reemplazo con múltiples párrafos (listas)
+        diccionario = {
+            "<<seccion_1>>": [
+                "Este es el primer párrafo de la sección.",
+                "Este es el segundo párrafo de la sección.",
+                "Este es el tercer párrafo de la sección."
+            ],
+            "<<orden_servicio>>": "12345",
         }
         
         reemplazar_texto_en_plantilla(doc, diccionario)
         doc.save('documento_con_texto.docx')
+    
+    Nota:
+        Para que se creen múltiples párrafos, el marcador debe ser el único
+        contenido del párrafo en la plantilla (sin texto adicional).
     """
     # Filtrar solo variables que NO son figuras, referencias, tablas o documentos externos
     variables_texto = {k: v for k, v in diccionario_de_reemplazos.items() 
