@@ -9,6 +9,7 @@ API Pública (en español):
     - insertar_figuras_en_plantilla: Inserta imágenes con o sin títulos/captions
     - insertar_referencias_cruzadas_en_plantilla: Crea referencias cruzadas a figuras
     - reemplazar_texto_en_plantilla: Reemplaza variables de texto en la plantilla
+    - insertar_lista_en_plantilla: Inserta listas con viñetas en la plantilla
     - insertar_documento_externo_en_plantilla: Inserta documentos Word externos
     - rellenar_tablas_en_plantilla: Rellena tablas con datos de DataFrames
     
@@ -74,6 +75,7 @@ from .api import (
     insertar_figuras_en_plantilla,
     insertar_referencias_cruzadas_en_plantilla,
     reemplazar_texto_en_plantilla,
+    insertar_lista_en_plantilla,
     reemplazar_variables_en_tablas,
     insertar_documento_externo_en_plantilla,
     rellenar_tablas_en_plantilla,
@@ -91,10 +93,11 @@ from .schemas_helpers import (
 from .utils import insert_line_feed
 
 __all__ = [
-    # API principal (6 funciones orquestadoras)
+    # API principal (7 funciones orquestadoras)
     'insertar_figuras_en_plantilla',
     'insertar_referencias_cruzadas_en_plantilla',
     'reemplazar_texto_en_plantilla',
+    'insertar_lista_en_plantilla',
     'reemplazar_variables_en_tablas',
     'insertar_documento_externo_en_plantilla',
     'rellenar_tablas_en_plantilla',

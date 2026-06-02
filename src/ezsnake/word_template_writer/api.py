@@ -9,6 +9,7 @@ Functions:
     - insertar_figuras_en_plantilla: Insert figures with/without captions
     - insertar_referencias_cruzadas_en_plantilla: Create cross-references to figures
     - reemplazar_texto_en_plantilla: Replace text variables in template
+    - insertar_lista_en_plantilla: Insert bulleted lists in template
     - insertar_documento_externo_en_plantilla: Insert external Word documents
     - rellenar_tablas_en_plantilla: Fill tables with DataFrame data
 """
@@ -277,9 +278,9 @@ def reemplazar_texto_en_plantilla(doc, diccionario_de_reemplazos):
         Para que se creen múltiples párrafos, el marcador debe ser el único
         contenido del párrafo en la plantilla (sin texto adicional).
     """
-    # Filtrar solo variables que NO son figuras, referencias, tablas o documentos externos
+    # Filtrar solo variables que NO son figuras, referencias, tablas, documentos externos o listas
     variables_texto = {k: v for k, v in diccionario_de_reemplazos.items() 
-                      if "fig" not in k and "ref" not in k and "tabla" not in k and "external_doc" not in k}
+                      if "fig_" not in k and "ref_" not in k and "tabla" not in k and "external_doc" not in k and "ul_" not in k and "lista_" not in k}
     
     # Para cada párrafo, procesar TODAS las variables de texto de una sola vez
     for parrafo in doc.paragraphs:
@@ -294,6 +295,157 @@ def reemplazar_texto_en_plantilla(doc, diccionario_de_reemplazos):
             replace_text_variables_in_paragraph(parrafo, variables_en_parrafo)
     
     msg = "Se agregaron los textos al documento."
+    print(msg)
+
+
+def insertar_lista_en_plantilla(doc, diccionario_de_reemplazos, nombre_estilo="List Bullet"):
+    """Inserta listas con viñetas en la plantilla de Word.
+    
+    Args:
+        doc: El documento de Word (objeto Document de python-docx).
+        diccionario_de_reemplazos: Diccionario donde las claves que comienzan con "<<lista_" 
+                                   contienen listas de elementos a insertar como viñetas.
+        nombre_estilo: Nombre del estilo de párrafo a aplicar a cada elemento de la lista.
+                      Por defecto usa "List Bullet" (estilo incorporado de Word).
+                      Se recomienda crear un estilo personalizado llamado "unsorted_list" 
+                      en la plantilla para mayor control del formato.
+    
+    Comportamiento:
+        - Busca marcadores que empiecen con "<<lista_" en los párrafos
+        - El marcador DEBE estar solo en el párrafo (sin texto adicional)
+        - Si el marcador no está solo, lanza ValueError
+        - Reemplaza el párrafo completo con múltiples párrafos (uno por elemento)
+        - Aplica el estilo especificado a cada párrafo nuevo
+        - Preserva la posición original del marcador en el documento
+    
+    Estructura esperada del diccionario:
+        {
+            "<<lista_resultados>>": [
+                "Primer resultado del análisis",
+                "Segundo resultado encontrado",
+                "Tercer resultado importante"
+            ],
+            "<<lista_recomendaciones>>": [
+                "Primera recomendación",
+                "Segunda recomendación"
+            ],
+            "<<orden_servicio>>": "12345"  # Variables no-lista se ignoran aquí
+        }
+    
+    Ejemplo de uso:
+        from docx import Document
+        from word_template_writer import insertar_lista_en_plantilla
+        
+        doc = Document('plantilla.docx')
+        diccionario = {
+            "<<lista_hallazgos>>": [
+                "Se observó un incremento del 15% en la temperatura",
+                "La salinidad mostró valores consistentes con el promedio histórico",
+                "Se detectaron concentraciones elevadas de clorofila-a"
+            ],
+            "<<lista_equipos>>": [
+                "CTD SBE 911plus",
+                "ADCP Workhorse 300 kHz",
+                "Fluorómetro WETLabs ECO"
+            ]
+        }
+        
+        # Usando estilo por defecto
+        insertar_lista_en_plantilla(doc, diccionario)
+        
+        # Usando estilo personalizado (debe existir en la plantilla)
+        insertar_lista_en_plantilla(doc, diccionario, nombre_estilo="unsorted_list")
+        
+        doc.save('documento_con_listas.docx')
+    
+    Raises:
+        ValueError: Si el marcador no está solo en el párrafo o si el valor no es una lista
+    
+    Nota importante:
+        Para que esta función trabaje correctamente, el marcador <<lista_*>> debe ser
+        el ÚNICO contenido del párrafo en la plantilla. Por ejemplo:
+        
+        ✓ CORRECTO:   Párrafo que solo contiene "<<lista_hallazgos>>"
+        ✗ INCORRECTO: "Los hallazgos son: <<lista_hallazgos>>"
+    """
+    from docx.oxml import OxmlElement
+    from docx.text.paragraph import Paragraph
+    
+    # Filtrar solo variables que son listas (comienzan con "<<lista_")
+    variables_listas = {k: v for k, v in diccionario_de_reemplazos.items() if k.startswith("<<lista_")}
+    
+    # Procesar cada variable de lista
+    for variable, elementos_lista in variables_listas.items():
+        # Validar que el valor sea una lista
+        if not isinstance(elementos_lista, list):
+            raise ValueError(
+                f"El valor de '{variable}' debe ser una lista. "
+                f"Se recibió: {type(elementos_lista).__name__}"
+            )
+        
+        if len(elementos_lista) == 0:
+            print(f"Advertencia: La variable '{variable}' contiene una lista vacía. Se omite.")
+            continue
+        
+        # Buscar el marcador en todos los párrafos del documento
+        for parrafo in doc.paragraphs:
+            if variable in parrafo.text:
+                # Obtener el texto completo del párrafo
+                full_text = "".join(run.text for run in parrafo.runs).strip()
+                
+                # Validar que el marcador esté SOLO en el párrafo
+                if full_text != variable:
+                    raise ValueError(
+                        f"El marcador '{variable}' debe estar solo en el párrafo. "
+                        f"Texto encontrado: '{full_text}'. "
+                        f"Los elementos <<lista_*>> deben estar solos en un párrafo."
+                    )
+                
+                # Reemplazar el primer párrafo con el primer elemento de la lista
+                primer_run = parrafo.runs[0] if parrafo.runs else parrafo.add_run()
+                primer_run.text = str(elementos_lista[0])
+                
+                # Limpiar el resto de runs del párrafo
+                for i in range(1, len(parrafo.runs)):
+                    parrafo.runs[i].text = ""
+                
+                # Aplicar el estilo al primer párrafo
+                try:
+                    parrafo.style = nombre_estilo
+                except KeyError:
+                    print(f"Advertencia: El estilo '{nombre_estilo}' no existe en el documento. "
+                          f"Se mantiene el estilo original del párrafo.")
+                
+                # Obtener el elemento actual y su padre
+                elemento_actual = parrafo._element
+                
+                # Insertar párrafos adicionales para el resto de elementos
+                for texto in elementos_lista[1:]:
+                    # Crear un nuevo elemento de párrafo
+                    nuevo_elemento = OxmlElement('w:p')
+                    
+                    # Insertar el nuevo párrafo después del anterior
+                    elemento_actual.addnext(nuevo_elemento)
+                    
+                    # Crear objeto Paragraph desde el elemento XML
+                    nuevo_parrafo = Paragraph(nuevo_elemento, parrafo._parent)
+                    
+                    # Aplicar el estilo
+                    try:
+                        nuevo_parrafo.style = nombre_estilo
+                    except KeyError:
+                        pass  # Si falla, usa el estilo por defecto
+                    
+                    # Agregar el texto al nuevo párrafo
+                    nuevo_parrafo.add_run(str(texto))
+                    
+                    # Actualizar el elemento actual para la siguiente iteración
+                    elemento_actual = nuevo_elemento
+                
+                # Ya se procesó este marcador, pasar al siguiente
+                break
+    
+    msg = "Listas insertadas en el documento."
     print(msg)
 
 
