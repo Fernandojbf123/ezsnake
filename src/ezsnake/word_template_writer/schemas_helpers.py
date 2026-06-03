@@ -72,15 +72,13 @@ class EstilosTabla:
         >>> config_dict = estilos.to_dict()
     """
     
-    def __init__(self, doc):
+    def __init__(self):
         """
         Inicializa EstilosTabla con valores por defecto.
         
         Args:
             doc: Objeto Document de python-docx para validar estilos
         """
-        self._doc = doc
-        self._estilos_disponibles = get_estilos_disponibles(doc)
         self._config = {}
         self.set_default()  # Aplica valores por defecto automáticamente
     
@@ -130,7 +128,6 @@ class EstilosTabla:
         Raises:
             ValueError: Si el estilo no existe en el documento
         """
-        self._validar_estilo(estilo)
         self._config["por_defecto"]["estilo_parrafo"] = estilo
     
     def set_color_fondo_por_defecto(self, color: Optional[Tuple[int, int, int]]):
@@ -178,7 +175,6 @@ class EstilosTabla:
             ValueError: Si col es negativo o si el estilo no existe
         """
         self._validar_indice_columna(col)
-        self._validar_estilo(estilo)
         if col not in self._config["por_columna"]:
             self._config["por_columna"][col] = {}
         self._config["por_columna"][col]["estilo_parrafo"] = estilo
@@ -264,7 +260,6 @@ class EstilosTabla:
             ValueError: Si fila es negativo o si el estilo no existe
         """
         self._validar_indice_fila(fila)
-        self._validar_estilo(estilo)
         if fila not in self._config["por_fila"]:
             self._config["por_fila"][fila] = {}
         self._config["por_fila"][fila]["estilo_parrafo"] = estilo
@@ -312,7 +307,6 @@ class EstilosTabla:
             ValueError: Si la celda no es válida o si el estilo no existe
         """
         self._validar_celda(celda)
-        self._validar_estilo(estilo)
         if celda not in self._config["por_celda"]:
             self._config["por_celda"][celda] = {}
         self._config["por_celda"][celda]["estilo_parrafo"] = estilo
@@ -352,17 +346,6 @@ class EstilosTabla:
         if not all(isinstance(c, int) and 0 <= c <= 255 for c in color):
             raise ValueError(
                 f"Valores RGB deben ser enteros entre 0-255. Recibido: {color}"
-            )
-    
-    def _validar_estilo(self, estilo: str):
-        """Valida que el estilo exista en el documento"""
-        if estilo not in self._estilos_disponibles:
-            # Mostrar primeros 10 estilos como sugerencia
-            sugerencias = ', '.join(self._estilos_disponibles[:10])
-            raise ValueError(
-                f"Estilo '{estilo}' no existe en el documento.\n"
-                f"Estilos disponibles (primeros 10): {sugerencias}...\n"
-                f"Total de estilos: {len(self._estilos_disponibles)}"
             )
     
     def _validar_indice_columna(self, col: int):
