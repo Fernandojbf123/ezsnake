@@ -15,6 +15,22 @@ from docx.oxml.ns import qn
 from docx.text.paragraph import Paragraph
 
 
+def _aplicar_estilo_parrafo(paragraph, nombre_estilo):
+    """Aplica estilo de párrafo por style_id sobre el elemento XML del párrafo."""
+    p_element = paragraph._element
+    pPr = p_element.find(qn('w:pPr'))
+    if pPr is None:
+        pPr = OxmlElement('w:pPr')
+        p_element.insert(0, pPr)
+
+    pStyle = pPr.find(qn('w:pStyle'))
+    if pStyle is None:
+        pStyle = OxmlElement('w:pStyle')
+        pPr.insert(0, pStyle)
+
+    pStyle.set(qn('w:val'), nombre_estilo)
+
+
 def aux_insertar_figura_sin_titulo(paragraph, key, lista_figuras):
     """Inserta imágenes en un párrafo de Word SIN título/Caption.
     
@@ -52,33 +68,23 @@ def aux_insertar_figura_sin_titulo(paragraph, key, lista_figuras):
     for idx, item in enumerate(lista_figuras):
         ruta = item.get("ruta", "")
         ancho = item.get("tamanio", 6)
+        estilo_figura = item.get("estilo_figura", "Figura")
         
         # Si es la primera imagen, usar el párrafo actual
         if offset == 0:
-            # Aplicar estilo "Figura" al párrafo actual
-            p_element = paragraph._element
-            pPr = p_element.find(qn('w:pPr'))
-            if pPr is None:
-                pPr = OxmlElement('w:pPr')
-                p_element.insert(0, pPr)
-            # Aplicar estilo Figura
-            pStyle = pPr.find(qn('w:pStyle'))
-            if pStyle is None:
-                pStyle = OxmlElement('w:pStyle')
-                pPr.insert(0, pStyle)
-            pStyle.set(qn('w:val'), 'Figura')
+            _aplicar_estilo_parrafo(paragraph, estilo_figura)
             
             run = paragraph.runs[0] if paragraph.runs else paragraph.add_run()
             if exists(ruta):
                 run.add_picture(ruta, width=Inches(ancho))
             offset = 1
         else:
-            # Crear nuevo párrafo para imagen con estilo "Figura"
+            # Crear nuevo párrafo para imagen con estilo configurable
             nuevo_p_img = OxmlElement('w:p')
             # Propiedades del párrafo
             pPr_img = OxmlElement('w:pPr')
             pStyle_img = OxmlElement('w:pStyle')
-            pStyle_img.set(qn('w:val'), 'Figura')
+            pStyle_img.set(qn('w:val'), estilo_figura)
             pPr_img.append(pStyle_img)
             nuevo_p_img.append(pPr_img)
             
@@ -105,7 +111,7 @@ def aux_insertar_figuras_con_titulo(paragraph, key, lista_figuras):
         
     Ejemplo de uso:
         lista_figuras = [
-            {"ruta": "img1.png", "titulo": "Mapa de ubicación", "tamanio": 6, "bookmark": "_Ref_Mapa1"},
+            {"ruta": "img1.png", "titulo": "Mapa de ubicación", "tamanio": 6, "bookmark": "RefFigura_Mapa1"},
             {"ruta": "img2.png", "titulo": "Temperatura del agua", "tamanio": 5}
         ]
     """
@@ -133,33 +139,24 @@ def aux_insertar_figuras_con_titulo(paragraph, key, lista_figuras):
         titulo = item.get("titulo", f"Figura {idx + 1}")
         ancho = item.get("tamanio", 6)
         bookmark = item.get("bookmark", None)  # Bookmark personalizado opcional
+        estilo_figura = item.get("estilo_figura", "Figura")
+        estilo_titulo = item.get("estilo_titulo", "Normal")
         
         # Si es la primera imagen, usar el párrafo actual
         if offset == 0:
-            # Aplicar estilo "Figura" al párrafo actual
-            p_element = paragraph._element
-            pPr = p_element.find(qn('w:pPr'))
-            if pPr is None:
-                pPr = OxmlElement('w:pPr')
-                p_element.insert(0, pPr)
-            # Aplicar estilo Figura
-            pStyle = pPr.find(qn('w:pStyle'))
-            if pStyle is None:
-                pStyle = OxmlElement('w:pStyle')
-                pPr.insert(0, pStyle)
-            pStyle.set(qn('w:val'), 'Figura')
+            _aplicar_estilo_parrafo(paragraph, estilo_figura)
             
             run = paragraph.runs[0] if paragraph.runs else paragraph.add_run()
             if exists(ruta):
                 run.add_picture(ruta, width=Inches(ancho))
             offset = 1
         else:
-            # Crear nuevo párrafo para imagen con estilo "Figura"
+            # Crear nuevo párrafo para imagen con estilo configurable
             nuevo_p_img = OxmlElement('w:p')
             # Propiedades del párrafo
             pPr_img = OxmlElement('w:pPr')
             pStyle_img = OxmlElement('w:pStyle')
-            pStyle_img.set(qn('w:val'), 'Figura')
+            pStyle_img.set(qn('w:val'), estilo_figura)
             pPr_img.append(pStyle_img)
             nuevo_p_img.append(pPr_img)
             
@@ -175,7 +172,8 @@ def aux_insertar_figuras_con_titulo(paragraph, key, lista_figuras):
             parent, 
             indice_base + offset, 
             titulo,
-            bookmark_name=bookmark
+            bookmark_name=bookmark,
+            estilo_titulo=estilo_titulo,
         )
         bookmarks_creados.append(bookmark_name)
         offset += 1
@@ -200,7 +198,7 @@ def aux_insertar_referencia_cruzada(paragraph, nombre_bookmark, texto_antes="Fig
     Ejemplo de uso:
         # Para: "Como se muestra en la Figura 3"
         p = doc.add_paragraph("Como se muestra en la ")
-        aux_insertar_referencia_cruzada(p, "_Ref_Fig_Mi_Figura", "Figura")
+        aux_insertar_referencia_cruzada(p, "RefFigura_Mi_Figura", "Figura")
     """
     # Agregar texto antes si se proporciona
     if texto_antes:
@@ -241,7 +239,7 @@ def aux_insertar_referencia_cruzada(paragraph, nombre_bookmark, texto_antes="Fig
     run._element.append(fldChar_end)
 
 
-def crear_pie_de_figura(parent, indice, titulo, bookmark_name=None):
+def crear_pie_de_figura(parent, indice, titulo, bookmark_name=None, estilo_titulo='Normal'):
     """Crea un párrafo con pie de figura válido para Word con estilo, campo SEQ y bookmark.
     
     Args:
@@ -249,36 +247,29 @@ def crear_pie_de_figura(parent, indice, titulo, bookmark_name=None):
         indice: Posición donde insertar
         titulo: Texto descriptivo de la figura
         bookmark_name: Nombre del bookmark para referencias cruzadas (opcional, se genera automático si None)
+        estilo_titulo: style_id del párrafo para el pie de figura (default: "Normal")
     
     Returns:
         Tupla (elemento XML del párrafo creado, nombre del bookmark)
     
     Estilos aplicados:
-        - Si longitud total < 115 caracteres: usa estilo "Car_centrado" (style_id: 'Carcentrado')
-        - Si longitud total >= 115 caracteres: usa estilo "Car_justificado" (style_id: 'Carjustificado')
-        - Longitud total = "Figura XXX. " + titulo (estimado ~13 + len(titulo))
+        - Usa el style_id recibido en `estilo_titulo`
     
     Bookmark:
         El bookmark se crea alrededor del NÚMERO únicamente, no incluye "Figura" ni el título.
         Estructura: "Figura " [bookmark_start] "8" [bookmark_end] ". Título"
         Esto permite que las referencias cruzadas muestren solo el número.
     """
-    cantidad_de_caracteres = 115  # Umbral para decidir entre centrado o justificado
-    
     # Generar nombre de bookmark si no se proporciona
     if bookmark_name is None:
         # Usar los primeros 30 caracteres del título, reemplazando espacios y caracteres especiales
-        bookmark_name = f"_Ref_Fig_{titulo[:30].replace(' ', '_').replace(',', '').replace('.', '')}"
+        bookmark_name = f"RefFigura_{titulo[:30].replace(' ', '_').replace(',', '').replace('.', '')}"
     
     # Generar ID único para el bookmark basado en el hash del nombre
     bookmark_id = str(abs(hash(bookmark_name)) % 1000000)
     
     # Crear párrafo con estilo
     nuevo_p = OxmlElement('w:p')
-    
-    # Determinar qué estilo usar según la longitud del título
-    longitud_estimada = 13 + len(titulo)
-    estilo_titulo = 'Carcentrado' if longitud_estimada < cantidad_de_caracteres else 'Carjustificado'
     
     # Propiedades del párrafo
     pPr = OxmlElement('w:pPr')

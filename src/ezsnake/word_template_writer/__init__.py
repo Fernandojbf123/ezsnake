@@ -6,8 +6,10 @@ Módulo para manipular plantillas de Word (.docx) con funciones de alto nivel
 para insertar figuras, referencias cruzadas, texto, documentos externos y tablas.
 
 API Pública (en español):
-    - insertar_figuras_en_plantilla: Inserta imágenes con o sin títulos/captions
-    - insertar_referencias_cruzadas_en_plantilla: Crea referencias cruzadas a figuras
+    - reemplazar_variable_por_figura: Inserta imágenes con o sin títulos/captions
+    - reemplazar_referencias_cruzadas_de_figuras: Crea referencias cruzadas a figuras
+    - reemplazar_variable_por_tabla: Inserta tablas dinámicas y prepara referencias cruzadas
+    - reemplazar_referencias_cruzadas_de_tablas: Crea referencias cruzadas a tablas
     - reemplazar_texto_en_plantilla: Reemplaza variables de texto en la plantilla
     - insertar_lista_en_plantilla: Inserta listas con viñetas en la plantilla
     - insertar_documento_externo_en_plantilla: Inserta documentos Word externos
@@ -17,25 +19,26 @@ Clases de Configuración:
     - EstilosTabla: Configuración de estilos para tablas (colores, alineación, estilos)
     - OpcionesTabla: Opciones de comportamiento para tablas (merge, MultiIndex)
     - FigSchema: Configuración individual de figuras
+    - TablaSchema: Configuración individual de tablas dinámicas
     
 Utilidades:
     - insert_line_feed: Inserta nuevos párrafos usando XML
     - get_estilos_disponibles: Extrae estilos de párrafo disponibles en un documento
 
 Uso típico básico:
-    from word_template_writer import insertar_figuras_en_plantilla, reemplazar_texto_en_plantilla
+    from word_template_writer import reemplazar_variable_por_figura, reemplazar_texto_en_plantilla
     from docx import Document
     
     doc = Document('plantilla.docx')
     diccionario = {
         "<<orden_servicio>>": "12345",
         "<<fig_mapas>>": [
-            {"ruta": "mapa1.png", "titulo": "Mapa", "tamanio": 6, "bookmark": "_Ref_Mapa1"}
+            {"ruta": "mapa1.png", "titulo": "Mapa", "tamanio": 6, "bookmark": "RefFigura_Mapa1"}
         ]
     }
     
     reemplazar_texto_en_plantilla(doc, diccionario)
-    insertar_figuras_en_plantilla(doc, diccionario)
+    reemplazar_variable_por_figura(doc, diccionario)
     doc.save('resultado.docx')
 
 Uso avanzado con estilos de tabla:
@@ -62,7 +65,14 @@ Uso avanzado con estilos de tabla:
     })
     
     # Rellenar tabla
-    rellenar_tablas_en_plantilla(doc, "<<table_datos>>", df, estilos, opciones)
+    diccionario = {
+        "<<editartabla_datos>>": {
+            "tabla": df,
+            "estilos_de_tabla": estilos,
+            "opciones_de_tabla": opciones,
+        }
+    }
+    rellenar_tablas_en_plantilla(doc, diccionario)
     doc.save('resultado.docx')
 
 Dependencias:
@@ -72,8 +82,10 @@ Dependencias:
 
 # Funciones principales del orquestador (API pública en español)
 from .api import (
-    insertar_figuras_en_plantilla,
-    insertar_referencias_cruzadas_en_plantilla,
+    reemplazar_variable_por_figura,
+    reemplazar_referencias_cruzadas_de_figuras,
+    reemplazar_variable_por_tabla,
+    reemplazar_referencias_cruzadas_de_tablas,
     reemplazar_texto_en_plantilla,
     insertar_lista_en_plantilla,
     reemplazar_variables_en_tablas,
@@ -86,6 +98,7 @@ from .schemas_helpers import (
     EstilosTabla,
     OpcionesTabla,
     FigSchema,
+    TablaSchema,
     get_estilos_disponibles,
 )
 
@@ -93,9 +106,11 @@ from .schemas_helpers import (
 from .utils import insert_line_feed
 
 __all__ = [
-    # API principal (7 funciones orquestadoras)
-    'insertar_figuras_en_plantilla',
-    'insertar_referencias_cruzadas_en_plantilla',
+    # API principal (9 funciones orquestadoras)
+    'reemplazar_variable_por_figura',
+    'reemplazar_referencias_cruzadas_de_figuras',
+    'reemplazar_variable_por_tabla',
+    'reemplazar_referencias_cruzadas_de_tablas',
     'reemplazar_texto_en_plantilla',
     'insertar_lista_en_plantilla',
     'reemplazar_variables_en_tablas',
@@ -105,6 +120,7 @@ __all__ = [
     'EstilosTabla',
     'OpcionesTabla',
     'FigSchema',
+    'TablaSchema',
     # Utilidades
     'insert_line_feed',
     'get_estilos_disponibles',

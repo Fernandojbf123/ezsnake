@@ -65,7 +65,7 @@ nuevas_variables = {
 }
 
 ezw.reemplazar_texto_en_plantilla(doc, nuevas_variables)
-ezw.insertar_figuras_en_plantilla(doc, nuevas_variables)
-ezw.insertar_referencias_cruzadas_en_plantilla(doc, nuevas_variables)
+ezw.reemplazar_texto_en_plantilla(doc, nuevas_variables)
+ezw.reemplazar_referencias_cruzadas_de_figuras(doc, nuevas_variables)
 
 doc.save(r"D:\programacion\codigos_python\ezsnake\tests\doc_listo.docx")

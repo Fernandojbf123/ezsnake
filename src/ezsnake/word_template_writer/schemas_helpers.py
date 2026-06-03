@@ -9,6 +9,7 @@ Classes:
     - EstilosTabla: Configuration for table cell styling (colors, alignment, styles)
     - OpcionesTabla: Configuration for table behavior (merge cells, flatten MultiIndex)
     - FigSchema: Configuration for individual figures
+    - TablaSchema: Configuration for individual dynamic tables
     
 Functions:
     - get_estilos_disponibles: Extract available style names from a Word document
@@ -16,6 +17,7 @@ Functions:
 
 from typing import Optional, Union, List, Tuple
 import os
+import pandas as pd
 
 
 def get_estilos_disponibles(doc) -> List[str]:
@@ -48,6 +50,13 @@ class EstilosTabla:
     
     Permite configurar estilos por defecto, por columna, por fila y por celda específica.
     La jerarquía de aplicación es: celda > fila > columna > defecto.
+
+        Nota de uso:
+                - Por defecto, todas las filas y columnas usan la configuración de `por_defecto`.
+                - Para modificar el header (fila 0), se recomienda:
+                    * set_color_del_fondo_de_fila(0, (R, G, B))
+                    * set_color_del_texto_de_fila(0, (R, G, B))
+                    * set_estilo_de_fila(0, "estilo")
     
     Attributes:
         _doc: Documento Word para validación de estilos
@@ -259,6 +268,18 @@ class EstilosTabla:
         if fila not in self._config["por_fila"]:
             self._config["por_fila"][fila] = {}
         self._config["por_fila"][fila]["estilo_parrafo"] = estilo
+
+    def set_color_del_fondo_de_fila(self, fila: int, color: Tuple[int, int, int]):
+        """Alias explícito para set_color_de_fila()."""
+        self.set_color_de_fila(fila, color)
+
+    def set_color_del_texto_de_fila(self, fila: int, color: Tuple[int, int, int]):
+        """Establece color de texto para una fila (útil para fila header)."""
+        self._validar_indice_fila(fila)
+        self._validar_color(color)
+        if fila not in self._config["por_fila"]:
+            self._config["por_fila"][fila] = {}
+        self._config["por_fila"][fila]["color_texto"] = color
     
     # ===== SETTERS POR CELDA =====
     
@@ -510,7 +531,9 @@ class FigSchema:
     ruta: Ruta completa a la imagen (string)
     titulo: Título de la figura (string)
     tamanio: Tamaño de la figura (int, por ejemplo, 6 para 6 cm de ancho)
-    bookmark: Bookmark para la figura (string). Debe iniciar con "Ref_" seguido del nombre de la figura.
+    bookmark: Bookmark para la figura (string). Debe iniciar con "RefFigura_" seguido del nombre de la figura.
+    estilo_figura: Estilo de párrafo (style_id) para el párrafo que contiene la imagen.
+    estilo_titulo: Estilo de párrafo (style_id) para el pie de figura.
     
     Ejemplo:
     En la plantilla de word la variable donde se inserta la figura se llamaría <<fig_ejemplo>>, 
@@ -519,11 +542,11 @@ class FigSchema:
     
     Entonces, este diccionario tendrá las características de la figura. Y deberá usarse para cada una de las figuras asociadas a esa variable. 
     Por ejemplo, si en el excel hay 1 filas con la variable <<fig_ejemplo>>, y esta tiene 3 figuras, cada figura deberá tener la ruta, título, tamaño y bookmark correspondiente a cada imagen. 
-    Y el bookmark de cada imagen debe iniciar con "Ref_" seguido del nombre del archivo de imagen (sin extensión). 
+    Y el bookmark de cada imagen debe iniciar con "RefFigura_" seguido del nombre del archivo de imagen (sin extensión). 
     Por ejemplo, si el nombre del archivo de imagen es "ejemplo1",
     
-    entonces el bookmark para esa figura sería "Ref_fig_ejemplo".
-    de bookmark: "Ref_fig_1"
+    entonces el bookmark para esa figura sería "RefFigura_fig_ejemplo".
+    de bookmark: "RefFigura_fig_1"
 
     Métodos:
     set_ruta: Establece la ruta completa a la imagen a partir de una carpeta, nombre de archivo y extensión.
@@ -538,14 +561,17 @@ class FigSchema:
         ruta_a_figura: str = "",
         titulo: str = "",
         tamanio: int = 6,
-        bookmark: str = ""
+        bookmark: str = "",
+        estilo_figura: str = "Figura",
+        estilo_titulo: str = "Normal",
     ):
         self.ruta = ruta_a_figura
         self.titulo = titulo
         self.tamanio = tamanio
         self.bookmark = bookmark
-        self._validar()
-    
+        self.estilo_figura = estilo_figura
+        self.estilo_titulo = estilo_titulo
+
     def _validar(self):
         """Valida los parámetros de la figura"""
         if not isinstance(self.ruta, str) or not self.ruta:
@@ -558,9 +584,15 @@ class FigSchema:
         if not os.path.exists(self.ruta):
             raise ValueError(f"Archivo de imagen no encontrado: {self.ruta}")
     
-        if not self.bookmark.startswith("_Ref_"):
+        if not self.bookmark.startswith("RefFigura_"):
             # Validar formato de bookmark (opcional)
-            raise ValueError("bookmark debe comenzar con '_Ref_' para ser válido en referencias cruzadas") 
+            raise ValueError("bookmark debe comenzar con 'RefFigura_' para ser válido en referencias cruzadas") 
+
+        if not isinstance(self.estilo_figura, str) or not self.estilo_figura.strip():
+            raise ValueError("estilo_figura debe ser string no vacío")
+
+        if not isinstance(self.estilo_titulo, str) or not self.estilo_titulo.strip():
+            raise ValueError("estilo_titulo debe ser string no vacío")
     
     def set_ruta(self, ruta_a_la_carpeta_de_imagenes: str, nombre_de_archivo: str, extension: str = "jpg"):
         carpeta = ruta_a_la_carpeta_de_imagenes
@@ -571,7 +603,7 @@ class FigSchema:
         self.tamanio = tamanio
     
     def set_bookmark(self, nombre_de_archivo: str):
-        bookmark = "Ref_"+nombre_de_archivo
+        bookmark = "RefFigura_"+nombre_de_archivo
         self.bookmark = bookmark.strip()
         
     def set_titulo(self, titulo_de_figura: str):
@@ -579,17 +611,87 @@ class FigSchema:
         if titulo != "":
             titulo = titulo if titulo.endswith(".") else titulo + "."
         self.titulo = titulo
+
+    def set_estilo_figura(self, estilo_figura: str):
+        self.estilo_figura = estilo_figura.strip()
+
+    def set_estilo_titulo(self, estilo_titulo: str):
+        self.estilo_titulo = estilo_titulo.strip()
            
     def to_dict(self) -> dict:
         """
         Retorna diccionario con la configuración de la figura.
         
         Returns:
-            Diccionario con ruta, titulo, tamanio y bookmark
+            Diccionario con ruta, titulo, tamanio, bookmark, estilo_figura y estilo_titulo
         """
+        self._validar()
         return {
             "ruta": self.ruta,
             "titulo": self.titulo,
             "tamanio": self.tamanio,
-            "bookmark": self.bookmark
+            "bookmark": self.bookmark,
+            "estilo_figura": self.estilo_figura,
+            "estilo_titulo": self.estilo_titulo,
+        }
+
+
+class TablaSchema:
+    """
+    Clase para construir el diccionario de configuración de una variable <<nuevatabla_*>>.
+
+    Atributos:
+    tabla: DataFrame con los datos de la tabla
+    estilos_de_tabla: Instancia de EstilosTabla
+    titulo: Título que se insertará antes de la tabla
+    bookmark: Bookmark para referencias cruzadas. Debe iniciar con "Reftabla"
+
+    Métodos requeridos:
+    set_tabla, set_titulo, set_bookmark
+    """
+
+    def __init__(
+        self,
+        tabla: Optional[pd.DataFrame] = None,
+        estilos_de_tabla: Optional[EstilosTabla] = None,
+        titulo: str = "",
+        bookmark: str = "",
+    ):
+        self.tabla = tabla if tabla is not None else pd.DataFrame()
+        self.estilos_de_tabla = estilos_de_tabla
+        self.titulo = titulo
+        self.bookmark = bookmark
+
+    def _validar(self):
+        if not isinstance(self.tabla, pd.DataFrame):
+            raise ValueError("tabla debe ser una instancia de pandas.DataFrame")
+
+        if self.tabla.empty:
+            raise ValueError("tabla no puede estar vacía")
+
+        if not isinstance(self.estilos_de_tabla, EstilosTabla):
+            raise ValueError("estilos_de_tabla debe ser una instancia de EstilosTabla")
+
+        if not isinstance(self.titulo, str) or not self.titulo.strip():
+            raise ValueError("titulo debe ser string no vacío")
+
+        if not isinstance(self.bookmark, str) or not self.bookmark.startswith("Reftabla"):
+            raise ValueError("bookmark debe comenzar con 'Reftabla'")
+
+    def set_tabla(self, tabla: pd.DataFrame):
+        self.tabla = tabla
+
+    def set_titulo(self, titulo: str):
+        self.titulo = titulo.strip()
+
+    def set_bookmark(self, nombre_referencia: str):
+        self.bookmark = f"Reftabla_{nombre_referencia}".strip()
+
+    def to_dict(self) -> dict:
+        self._validar()
+        return {
+            "tabla": self.tabla,
+            "estilos_de_tabla": self.estilos_de_tabla,
+            "titulo": self.titulo,
+            "bookmark": self.bookmark,
         }

@@ -15,6 +15,57 @@ from .schemas_helpers import EstilosTabla, OpcionesTabla
 from ._table_styling import apply_cell_style, apply_row_height
 
 
+def insertar_titulo_de_tabla_con_bookmark(doc, marcador_tabla, titulo, bookmark, estilo_titulo="Normal"):
+    """Inserta un título con bookmark antes de la tabla que contiene el marcador."""
+    if not titulo:
+        return
+
+    tabla_objetivo = None
+    for tabla in doc.tables:
+        for fila in tabla.rows:
+            for celda in fila.cells:
+                if marcador_tabla in celda.text:
+                    tabla_objetivo = tabla
+                    break
+            if tabla_objetivo is not None:
+                break
+        if tabla_objetivo is not None:
+            break
+
+    if tabla_objetivo is None:
+        raise ValueError(f"No se encontró la tabla con marcador '{marcador_tabla}' para insertar título.")
+
+    from docx.oxml import OxmlElement
+
+    bookmark_id = str(abs(hash(bookmark)) % 1000000)
+
+    nuevo_p = OxmlElement('w:p')
+
+    pPr = OxmlElement('w:pPr')
+    pStyle = OxmlElement('w:pStyle')
+    pStyle.set(qn('w:val'), estilo_titulo)
+    pPr.append(pStyle)
+    nuevo_p.append(pPr)
+
+    bookmark_start = OxmlElement('w:bookmarkStart')
+    bookmark_start.set(qn('w:id'), bookmark_id)
+    bookmark_start.set(qn('w:name'), bookmark)
+    nuevo_p.append(bookmark_start)
+
+    run = OxmlElement('w:r')
+    text = OxmlElement('w:t')
+    text.set(qn('xml:space'), 'preserve')
+    text.text = str(titulo)
+    run.append(text)
+    nuevo_p.append(run)
+
+    bookmark_end = OxmlElement('w:bookmarkEnd')
+    bookmark_end.set(qn('w:id'), bookmark_id)
+    nuevo_p.append(bookmark_end)
+
+    tabla_objetivo._element.addprevious(nuevo_p)
+
+
 # ===== NORMALIZATION FUNCTIONS =====
 
 def _normalize_input_to_dataframe(datos: Union[pd.DataFrame, dict]) -> pd.DataFrame:
