@@ -5,6 +5,44 @@ from docx import Document
 ruta_plantilla =  "C:\\programacion\\codigos_python\\ezsnake\\tests\\demo.docx"
 doc = Document(ruta_plantilla)  
 
+# Primera parte: Crear el diccionario de reemplazos
+
+# Ejemplo 1: Reemplazo de texto en párrafos (dentro de párrafos o creación de párrafos nuevos)
+dict_de_reemplazos = {
+    "<<fecha>>": "03 de junio de 2026",
+    "<<nombre_de_cliente>>": "BelloDev",
+    "<<parrafos>>": [
+        ("Con el modulo de ezword se pueden crear parrafos con diferentes estilos.", "Normal"),
+        ('Como por ejemplo, este párrafo con estilo "Fuerte."'),"Fuerte"]
+}
+
+# Ejemplo 2: insertar una lista
+dict_de_reemplazos["<<lista_de_objetivos>>"] = [ 
+                "Primera recomendación",
+                "Segunda recomendación"]
+
+
+# Ejemplo 3: insertar una figura sin título
+dict_de_reemplazos["<<figura_ejemplo>>"] = [{
+        "ruta": "C:\\programacion\\codigos_python\\ezsnake\\tests\\figuras_demo\\fig_sec_1_1.jpg",
+        "titulo": "", # No lleva título porque ya está en el documento
+        "tamanio": 2,
+        "bookmark": "", # No lleva bookmark porque ya está en el documento
+        "estilo_figura":"Figura",
+        "estilo_titulo": "Carcentrado"
+    }]
+
+
+dict_de_reemplazos["<<figura_con_titulo>>"] = [{
+        "ruta": "C:\\programacion\\codigos_python\\ezsnake\\tests\\figuras_demo\\fig_sec_1_1.jpg",
+        "titulo": "Se ve la carita de una niña", # Título personalizado para esta figura
+        "tamanio": 2,
+        "bookmark": "<<RefFigura_sec_1_1>>", 
+        "estilo_figura":"Figura",
+        "estilo_titulo": "Carcentrado"
+    }]
+
+# Ejemplo 5: Creación de secciones en el documento, un título, varios párrafos, figuras e imágenes
 dict_de_reemplazos = {
     "<<sec_prueba>>": [
         ( "<<titulo_1>>", "subtitulo"),    
@@ -26,7 +64,14 @@ dict_de_reemplazos = {
 
 }
 
-ezw.reemplazar_texto_en_plantilla(doc, dict_de_reemplazos)
+# El diccionario de reemplazo busca la variable <<sec_prueba>> en el documento, y al encontrarla, 
+# inserta una sección completa con el contenido definido en la lista asociada a esa variable. 
+# Cada tupla en la lista representa un bloque de contenido, donde el primer elemento es el texto o marcador 
+# a insertar, y el segundo elemento es el estilo a aplicar (por ejemplo, "subtitulo", "Normal", "figura", etc.).
+
+
+
+
 
 nuevas_variables = {
     "<<titulo_1>>": "Resultados de la sección 1.",
@@ -84,7 +129,25 @@ nuevas_variables = {
         }],
 }
 
-ezw.reemplazar_texto_en_plantilla(doc, nuevas_variables)
+
+
+
+diccionario_de_tablas = {
+    "<<nuevatabla_resultados>>": {
+                "tabla": df,
+                "estilos_de_tabla": estilos,
+                "titulo": "Tabla 1. Resultados del análisis",
+                "bookmark": "Reftabla_Resultados_1",
+            }
+}
+
+ezw.reemplazar_texto_en_plantilla(doc, nuevas_variables) # Esto pondría en el documento los contenidos del ejemplo 1 y 5.
+# El ejemplo 5 es una sección, que introduce más variables nuevas al documento, como <<titulo_1>>, <<contenido_1>>, 
+# <<fig_sec_1>>, etc. Estas variables también se reemplazarán en esta misma llamada a reemplazar_texto_en_plantilla,
+# porque el código de esa función es capaz de detectar las nuevas variables que se introducen al insertar la sección, 
+# y reemplazarlas también. Pero esto solo pasará si dentro de diccionario_de_reemplazos, existen esas variables.
+# En este ejemplo el diccionario_de_reemplazos incluye las variables.
+
 ezw.reemplazar_variable_por_figura(doc, nuevas_variables)
 ezw.reemplazar_referencias_cruzadas_de_figuras(doc, nuevas_variables)
 
