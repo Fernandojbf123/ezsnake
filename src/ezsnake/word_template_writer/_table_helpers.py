@@ -9,7 +9,8 @@ Import from the public API in api.py instead.
 """
 
 import pandas as pd
-from typing import Union, Optional, Dict, List, Tuple
+import re
+from typing import Union, Optional, List, Tuple
 from docx.oxml.ns import qn
 from .schemas_helpers import EstilosTabla, OpcionesTabla
 from ._table_styling import apply_cell_style, apply_row_height
@@ -109,7 +110,7 @@ def _normalize_config_estilos(config_estilos: Union[EstilosTabla, dict, None], d
     """
     if config_estilos is None:
         # Crear EstilosTabla por defecto
-        config_obj = EstilosTabla(doc)
+        config_obj = EstilosTabla()
         return config_obj.to_dict()
     elif isinstance(config_estilos, EstilosTabla):
         return config_estilos.to_dict()
@@ -502,5 +503,327 @@ def fill_table(
     for row_idx in range(total_filas - 1, ultima_fila_con_datos, -1):
         _delete_row(table, row_idx)
     
+    return doc
+
+
+def _remove_paragraph(paragraph):
+    """Elimina un parrafo del documento manipulando su XML."""
+    parent = paragraph._element.getparent()
+    if parent is not None:
+        parent.remove(paragraph._element)
+
+
+def _find_paragraph_with_marker(doc, marcador: str):
+    """Busca el primer parrafo que contiene un marcador."""
+    for paragraph in doc.paragraphs:
+        if marcador in paragraph.text:
+            return paragraph
+    raise ValueError(f"No se encontro el marcador '{marcador}' en los parrafos del documento.")
+
+
+def _replace_marker_in_paragraph(paragraph, marcador: str, replacement: str = ""):
+    """Reemplaza un marcador en el texto consolidado del parrafo."""
+    full_text = "".join(run.text for run in paragraph.runs)
+    if marcador not in full_text:
+        return
+
+    updated_text = full_text.replace(marcador, replacement)
+    first_run = paragraph.runs[0] if paragraph.runs else paragraph.add_run()
+    first_run.text = updated_text
+    for run in paragraph.runs[1:]:
+        run.text = ""
+
+
+def _insert_table_after_paragraph(doc, paragraph, rows: int, cols: int):
+    """Crea una tabla y la reubica despues del parrafo indicado."""
+    table = doc.add_table(rows=rows, cols=cols)
+    paragraph._p.addnext(table._tbl)
+    return table
+
+
+def _insert_title_before_table(table, titulo: str, bookmark: str, estilo_titulo: str = "Normal"):
+    """Inserta un caption de tabla numerado con bookmark antes de una tabla."""
+    if not titulo or not bookmark:
+        return
+
+    from docx.oxml import OxmlElement
+
+    bookmark_id = str(abs(hash(bookmark)) % 1000000)
+    titulo_normalizado = _normalizar_texto_de_titulo_tabla(titulo)
+
+    nuevo_p = OxmlElement('w:p')
+
+    p_pr = OxmlElement('w:pPr')
+    p_style = OxmlElement('w:pStyle')
+    p_style.set(qn('w:val'), estilo_titulo)
+    p_pr.append(p_style)
+    nuevo_p.append(p_pr)
+
+    run_label = OxmlElement('w:r')
+    text_label = OxmlElement('w:t')
+    text_label.set(qn('xml:space'), 'preserve')
+    text_label.text = 'Tabla '
+    run_label.append(text_label)
+    nuevo_p.append(run_label)
+
+    bookmark_start = OxmlElement('w:bookmarkStart')
+    bookmark_start.set(qn('w:id'), bookmark_id)
+    bookmark_start.set(qn('w:name'), bookmark)
+    nuevo_p.append(bookmark_start)
+
+    run_begin = OxmlElement('w:r')
+    fldchar_begin = OxmlElement('w:fldChar')
+    fldchar_begin.set(qn('w:fldCharType'), 'begin')
+    run_begin.append(fldchar_begin)
+    nuevo_p.append(run_begin)
+
+    run_instr = OxmlElement('w:r')
+    instr_text = OxmlElement('w:instrText')
+    instr_text.set(qn('xml:space'), 'preserve')
+    instr_text.text = ' SEQ Tabla \\* ARABIC '
+    run_instr.append(instr_text)
+    nuevo_p.append(run_instr)
+
+    run_separate = OxmlElement('w:r')
+    fldchar_separate = OxmlElement('w:fldChar')
+    fldchar_separate.set(qn('w:fldCharType'), 'separate')
+    run_separate.append(fldchar_separate)
+    nuevo_p.append(run_separate)
+
+    run_result = OxmlElement('w:r')
+    text_result = OxmlElement('w:t')
+    text_result.text = '1'
+    run_result.append(text_result)
+    nuevo_p.append(run_result)
+
+    run_end = OxmlElement('w:r')
+    fldchar_end = OxmlElement('w:fldChar')
+    fldchar_end.set(qn('w:fldCharType'), 'end')
+    run_end.append(fldchar_end)
+    nuevo_p.append(run_end)
+
+    bookmark_end = OxmlElement('w:bookmarkEnd')
+    bookmark_end.set(qn('w:id'), bookmark_id)
+    nuevo_p.append(bookmark_end)
+
+    run_suffix = OxmlElement('w:r')
+    text_suffix = OxmlElement('w:t')
+    text_suffix.set(qn('xml:space'), 'preserve')
+    text_suffix.text = f'. {titulo_normalizado}'
+    run_suffix.append(text_suffix)
+    nuevo_p.append(run_suffix)
+
+    table._element.addprevious(nuevo_p)
+
+
+def _normalizar_texto_de_titulo_tabla(titulo: str) -> str:
+    """Elimina prefijos manuales tipo 'Tabla 1.' para evitar duplicar el caption."""
+    titulo_limpio = str(titulo).strip()
+    patron = re.compile(r'^Tabla\s+[A-Za-z0-9IVXivx]+\s*[\.:\-]?\s*')
+    return patron.sub('', titulo_limpio)
+
+
+def _crear_bookmark_de_tabla_desde_variable(variable: str) -> str:
+    """Genera un bookmark RefTabla_* a partir de <<nuevatabla_*>>."""
+    nombre_base = variable.strip('<>')
+    nombre_base = nombre_base.replace('nuevatabla_', '', 1)
+    return f'RefTabla_{nombre_base}'
+
+
+def crear_tabla_desde_marcador(
+    doc,
+    marcador_tabla: str,
+    datos: Union[pd.DataFrame, dict],
+    config_estilos: Union[EstilosTabla, dict, None] = None,
+    opciones_tabla: Union[OpcionesTabla, dict, None] = None,
+    titulo: str = "",
+    bookmark: str = "",
+    estilo_titulo: str = "Normal",
+):
+    """
+    Crea una tabla nueva desde cero a partir de un marcador en un parrafo.
+
+    La tabla resultante incluye encabezados (columnas del DataFrame) y contenido.
+    """
+    df = _normalize_input_to_dataframe(datos)
+    config = _normalize_config_estilos(config_estilos, doc)
+    opciones = _normalize_opciones_tabla(opciones_tabla)
+
+    if opciones["aplanar_multiindex"]:
+        if isinstance(df.index, pd.MultiIndex) or isinstance(df.columns, pd.MultiIndex):
+            df = _flatten_dataframe(df)
+    else:
+        if isinstance(df.index, pd.MultiIndex) or isinstance(df.columns, pd.MultiIndex):
+            raise ValueError(
+                "El DataFrame tiene MultiIndex pero 'aplanar_multiindex' esta desactivado. "
+                "Active la opcion o aplane el DataFrame manualmente con df.reset_index()."
+            )
+
+    paragraph = _find_paragraph_with_marker(doc, marcador_tabla)
+    table = _insert_table_after_paragraph(doc, paragraph, rows=len(df) + 1, cols=len(df.columns))
+
+    if titulo:
+        _insert_title_before_table(table, titulo=titulo, bookmark=bookmark, estilo_titulo=estilo_titulo)
+
+    # Encabezados
+    for col_idx, col_name in enumerate(df.columns):
+        header_cell = table.cell(0, col_idx)
+        header_cell.text = str(col_name)
+        if header_cell.paragraphs and header_cell.paragraphs[0].runs:
+            header_cell.paragraphs[0].runs[0].bold = True
+
+        merged_header_config = config.get("por_defecto", {}).copy()
+        apply_cell_style(header_cell, doc, config, 0, col_idx, merged_header_config)
+
+    # Detectar merges para el cuerpo de la tabla
+    merge_regions = []
+    if opciones["detectar_merge"]:
+        merge_regions = _detect_merge_regions_vertical(df, opciones["columnas_para_merge"])
+
+    celdas_merged_secundarias = set()
+    for start_row, end_row, col in merge_regions:
+        for row_idx in range(start_row + 1, end_row + 1):
+            celdas_merged_secundarias.add((row_idx, col))
+
+    # Datos (comienzan en la fila 1 de la tabla)
+    for df_row_idx, (_, df_row) in enumerate(df.iterrows()):
+        table_row_idx = df_row_idx + 1
+
+        row = table.rows[table_row_idx]
+        altura_fila = config["por_defecto"].get("altura_fila")
+        if altura_fila:
+            apply_row_height(row, altura_fila)
+
+        for df_col_idx, col_name in enumerate(df.columns):
+            if (df_row_idx, df_col_idx) not in celdas_merged_secundarias:
+                cell = table.cell(table_row_idx, df_col_idx)
+                cell.text = str(df_row[col_name])
+                merged_config = _merge_style_config(config, df_row_idx, df_col_idx)
+                apply_cell_style(cell, doc, config, df_row_idx, df_col_idx, merged_config)
+
+    if opciones["detectar_merge"]:
+        _apply_merged_cells_vertical(table, merge_regions, fila_inicio_datos=1)
+
+    _replace_marker_in_paragraph(paragraph, marcador_tabla, "")
+    if not paragraph.text.strip():
+        _remove_paragraph(paragraph)
+
+    return doc
+
+
+def procesar_reemplazar_variable_por_tabla(doc, diccionario_de_reemplazos: dict):
+    """Orquesta la creacion de tablas <<nuevatabla_*>> y prepara <<refnuevatabla_*>>."""
+    if diccionario_de_reemplazos is None:
+        raise ValueError("El diccionario de reemplazos no puede ser None.")
+
+    variables_tabla = {
+        k: v for k, v in diccionario_de_reemplazos.items()
+        if k.startswith("<<nuevatabla_")
+    }
+
+    referencias_tablas = {}
+
+    for variable, config_tabla in variables_tabla.items():
+        if not isinstance(config_tabla, dict):
+            raise ValueError(
+                f"La variable '{variable}' debe contener un diccionario con configuracion de tabla."
+            )
+
+        keys_requeridas = ["tabla", "titulo"]
+        faltantes = [key for key in keys_requeridas if key not in config_tabla]
+        if faltantes:
+            raise ValueError(
+                f"La variable '{variable}' no tiene las keys requeridas: {faltantes}."
+            )
+
+        tabla_df = config_tabla["tabla"]
+        estilos_de_tabla = config_tabla.get("estilos_de_tabla")
+        opciones_tabla = config_tabla.get("opciones_de_tabla")
+        titulo_tabla = config_tabla["titulo"]
+        bookmark_tabla = config_tabla.get("bookmark") or _crear_bookmark_de_tabla_desde_variable(variable)
+
+        if not isinstance(bookmark_tabla, str) or not bookmark_tabla.startswith("RefTabla"):
+            raise ValueError(
+                f"El bookmark de '{variable}' debe comenzar con 'RefTabla'."
+            )
+
+        crear_tabla_desde_marcador(
+            doc,
+            marcador_tabla=variable,
+            datos=tabla_df,
+            config_estilos=estilos_de_tabla,
+            opciones_tabla=opciones_tabla,
+            titulo=titulo_tabla,
+            bookmark=bookmark_tabla,
+            estilo_titulo="Caption",
+        )
+
+        variable_ref_key = variable.replace("<<nuevatabla_", "<<refnuevatabla_", 1)
+        referencias_tablas[variable_ref_key] = [bookmark_tabla]
+
+    diccionario_de_reemplazos.update(referencias_tablas)
+    return doc
+
+
+def procesar_rellenar_tablas_en_plantilla(doc, diccionario_de_reemplazos: dict):
+    """Orquesta el rellenado de tablas existentes marcadas con <<editartabla...>>."""
+    if diccionario_de_reemplazos is None:
+        raise ValueError("El diccionario de reemplazos no puede ser None.")
+
+    variables_tabla = {
+        k: v for k, v in diccionario_de_reemplazos.items()
+        if k.startswith("<<editartabla")
+    }
+
+    for variable, config_tabla in variables_tabla.items():
+        if not isinstance(config_tabla, dict):
+            raise ValueError(
+                f"La variable '{variable}' debe contener un diccionario con configuracion de tabla."
+            )
+
+        if "tabla" not in config_tabla:
+            raise ValueError(
+                f"La variable '{variable}' debe incluir la key 'tabla'."
+            )
+
+        tabla_df = config_tabla["tabla"]
+        config_estilos = config_tabla.get("estilos_de_tabla")
+        opciones_tabla = config_tabla.get("opciones_de_tabla")
+
+        fill_table(doc, variable, tabla_df, config_estilos, opciones_tabla)
+
+    return doc
+
+
+def reemplazar_variables_en_tablas_del_documento(doc, diccionario_de_reemplazos):
+    """Reemplaza variables de texto dentro de celdas de tablas del documento."""
+    from ._text_helpers import replace_text_variables_in_paragraph
+
+    prefijos_excluidos = [
+        "<<fig",
+        "<<reffigura",
+        "<<reftabla_",
+        "<<refnuevatabla_",
+        "<<nuevatabla_",
+        "<<editartabla",
+        "<<external_doc",
+    ]
+    variables_texto = {
+        k: v for k, v in diccionario_de_reemplazos.items()
+        if not any(k.startswith(prefix) for prefix in prefijos_excluidos)
+    }
+
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                for paragraph in cell.paragraphs:
+                    variables_en_parrafo = []
+                    for variable, dato in variables_texto.items():
+                        if variable in paragraph.text:
+                            variables_en_parrafo.append((variable, dato))
+
+                    if variables_en_parrafo:
+                        replace_text_variables_in_paragraph(paragraph, variables_en_parrafo)
+
     return doc
 

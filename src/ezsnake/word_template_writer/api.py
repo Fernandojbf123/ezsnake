@@ -22,9 +22,14 @@ from ._figure_helpers import (
     aux_insertar_figuras_con_titulo,
     aux_insertar_referencia_cruzada,
 )
-from ._text_helpers import replace_text_variables_in_paragraph, replace_text_variables_in_tables
+from ._text_helpers import replace_text_variables_in_paragraph
 from ._document_helpers import insert_external_document
-from ._table_helpers import fill_table, insertar_titulo_de_tabla_con_bookmark
+from ._table_helpers import (
+    fill_table,
+    procesar_reemplazar_variable_por_tabla,
+    procesar_rellenar_tablas_en_plantilla,
+    reemplazar_variables_en_tablas_del_documento,
+)
 
 
 def reemplazar_variable_por_figura(doc, diccionario_de_reemplazos: dict):
@@ -230,15 +235,15 @@ def reemplazar_referencias_cruzadas_de_figuras(doc, diccionario_de_reemplazos: d
 
 
 def reemplazar_referencias_cruzadas_de_tablas(doc, diccionario_de_reemplazos: dict):
-    """Reemplaza marcadores <<reftabla_*>> con referencias cruzadas a tablas.
+    """Reemplaza marcadores <<refnuevatabla_*>> con referencias cruzadas a tablas.
 
     Args:
         doc: Objeto Document de python-docx
         diccionario_de_reemplazos: Diccionario mutado por reemplazar_variable_por_tabla
-                                  Formato: {"<<reftabla_demo>>": ["Reftabla_MiTabla"], ...}
+                                  Formato: {"<<refnuevatabla_demo>>": ["RefTabla_MiTabla"], ...}
 
     Comportamiento:
-        - Busca variables que empiecen con "<<reftabla_" en los párrafos
+        - Busca variables que empiecen con "<<refnuevatabla_" en los párrafos
         - Si la lista tiene 1 bookmark: inserta "Tabla X"
         - Si la lista tiene 2+ bookmarks: inserta "Tabla X a la Y"
         - X e Y son referencias cruzadas reales (campos REF) que muestran el número/etiqueta
@@ -250,8 +255,8 @@ def reemplazar_referencias_cruzadas_de_tablas(doc, diccionario_de_reemplazos: di
 
         doc = Document('plantilla.docx')
         diccionario = {
-            "<<reftabla_resultados>>": ["Reftabla_Resultados_1"],
-            "<<reftabla_series>>": ["Reftabla_Serie_A", "Reftabla_Serie_B"],
+            "<<refnuevatabla_resultados>>": ["RefTabla_Resultados_1"],
+            "<<refnuevatabla_series>>": ["RefTabla_Serie_A", "RefTabla_Serie_B"],
         }
 
         reemplazar_referencias_cruzadas_de_tablas(doc, diccionario)
@@ -259,7 +264,7 @@ def reemplazar_referencias_cruzadas_de_tablas(doc, diccionario_de_reemplazos: di
     """
     variables_validas = {
         k: v for k, v in diccionario_de_reemplazos.items()
-        if v is not None and k.startswith("<<reftabla_")
+        if v is not None and (k.startswith("<<refnuevatabla_") or k.startswith("<<reftabla_"))
     }
 
     for parrafo in doc.paragraphs:
@@ -308,7 +313,7 @@ def reemplazar_referencias_cruzadas_de_tablas(doc, diccionario_de_reemplazos: di
 
 
 def reemplazar_variable_por_tabla(doc, diccionario_de_reemplazos: dict):
-    """Reemplaza variables <<nuevatabla_*>> por tablas y prepara referencias <<reftabla_*>>.
+    """Reemplaza variables <<nuevatabla_*>> por tablas y prepara referencias <<refnuevatabla_*>>.
 
     Args:
         doc: Objeto Document de python-docx
@@ -319,14 +324,15 @@ def reemplazar_variable_por_tabla(doc, diccionario_de_reemplazos: dict):
             "tabla": pd.DataFrame,
             "estilos_de_tabla": dict,
             "titulo": "Texto del título de tabla",
-            "bookmark": "Reftabla_MiTabla"
+            "bookmark": "RefTabla_MiTabla"
         }
 
     Comportamiento:
         - Busca keys que comienzan con "<<nuevatabla_"
-        - Inserta título con bookmark antes de la tabla objetivo
-        - Rellena la tabla con fill_table()
-        - Muta diccionario_de_reemplazos agregando "<<reftabla_*>>": [bookmark]
+        - Crea la tabla desde cero donde aparece el marcador de párrafo
+        - Inserta un título numerado de Word con campo SEQ Tabla y bookmark
+        - El título usa estilo Caption para aparecer en el índice de tablas
+        - Muta diccionario_de_reemplazos agregando "<<refnuevatabla_*>>": [bookmark]
 
     Ejemplo de uso:
         import pandas as pd
@@ -341,68 +347,15 @@ def reemplazar_variable_por_tabla(doc, diccionario_de_reemplazos: dict):
             "<<nuevatabla_resultados>>": {
                 "tabla": df,
                 "estilos_de_tabla": estilos,
-                "titulo": "Tabla 1. Resultados del análisis",
-                "bookmark": "Reftabla_Resultados_1",
+                "titulo": "Resultados del análisis",
+                "bookmark": "RefTabla_Resultados_1",
             }
         }
 
         reemplazar_variable_por_tabla(doc, diccionario)
         doc.save('documento_con_tablas.docx')
     """
-    if diccionario_de_reemplazos is None:
-        raise ValueError("El diccionario de reemplazos no puede ser None.")
-
-    variables_tabla = {
-        k: v for k, v in diccionario_de_reemplazos.items()
-        if k.startswith("<<nuevatabla_")
-    }
-
-    referencias_tablas = {}
-
-    for variable, config_tabla in variables_tabla.items():
-
-        if not isinstance(config_tabla, dict):
-            raise ValueError(
-                f"La variable '{variable}' debe contener un diccionario con configuración de tabla."
-            )
-
-        keys_requeridas = ["tabla", "estilos_de_tabla", "titulo", "bookmark"]
-        faltantes = [key for key in keys_requeridas if key not in config_tabla]
-        if faltantes:
-            raise ValueError(
-                f"La variable '{variable}' no tiene las keys requeridas: {faltantes}."
-            )
-
-        tabla_df = config_tabla["tabla"]
-        estilos_de_tabla = config_tabla["estilos_de_tabla"]
-        titulo_tabla = config_tabla["titulo"]
-        bookmark_tabla = config_tabla["bookmark"]
-
-        if not isinstance(bookmark_tabla, str) or not bookmark_tabla.startswith("Reftabla"):
-            raise ValueError(
-                f"El bookmark de '{variable}' debe comenzar con 'Reftabla'."
-            )
-
-        insertar_titulo_de_tabla_con_bookmark(
-            doc,
-            marcador_tabla=variable,
-            titulo=titulo_tabla,
-            bookmark=bookmark_tabla,
-            estilo_titulo="Normal",
-        )
-
-        fill_table(
-            doc,
-            variable,
-            tabla_df,
-            estilos_de_tabla,
-            None,
-        )
-
-        variable_ref_key = variable.replace("<<nuevatabla_", "<<reftabla_", 1)
-        referencias_tablas[variable_ref_key] = [bookmark_tabla]
-
-    diccionario_de_reemplazos.update(referencias_tablas)
+    procesar_reemplazar_variable_por_tabla(doc, diccionario_de_reemplazos)
 
     msg = "Tablas insertadas y referencias de tabla preparadas en el diccionario."
     print(msg)
@@ -423,7 +376,7 @@ def reemplazar_texto_en_plantilla(doc, diccionario_de_reemplazos):
                     * Figuras (<<fig...>>)
                     * Referencias de figuras (<<reffigura...>>)
                     * Tablas (<<nuevatabla_...>>, <<editartabla...>>)
-                    * Referencias de tablas (<<reftabla_...>>)
+                    * Referencias de tablas (<<refnuevatabla_...>>, <<reftabla_...>>)
                     * Documentos externos (<<external_doc_...>>)
         - Procesa todas las variables de texto en cada párrafo de una sola vez
         - Preserva el formato del primer run del párrafo
@@ -472,6 +425,7 @@ def reemplazar_texto_en_plantilla(doc, diccionario_de_reemplazos):
         "<<reffigura",
         "<<nuevatabla_",
         "<<editartabla",
+        "<<refnuevatabla_",
         "<<reftabla_",
         "<<external_doc_",
         "<<lista_",
@@ -753,19 +707,15 @@ def rellenar_tablas_en_plantilla(doc, diccionario_de_reemplazos: dict):
         - Columna 0 del DataFrame → Columna 0 de la tabla
     """
     
-    variables_texto = {
-        k: v for k, v in diccionario_de_reemplazos.items()
-        if k.startswith("<<editartabla")
-    }
-    
-    for variable in variables_texto.keys():
-        df_tabla = diccionario_de_reemplazos[variable]["tabla"]
-        config_estilos = diccionario_de_reemplazos[variable]["estilos_de_tabla"]
-        opciones_tabla = diccionario_de_reemplazos[variable]["opciones_de_tabla"]
-        fill_table(doc, variable, df_tabla, config_estilos, opciones_tabla)
-    
-        msg = f"Tabla '{variable}' rellenada correctamente."
-        print(msg)
+    procesar_rellenar_tablas_en_plantilla(doc, diccionario_de_reemplazos)
+
+    msg = "Tablas rellenadas correctamente."
+    print(msg)
+
+
+def reemplazar_variable_en_tabla(doc, diccionario_de_reemplazos):
+    """Alias singular de reemplazar_variables_en_tablas para compatibilidad."""
+    reemplazar_variables_en_tablas(doc, diccionario_de_reemplazos)
 
 
 def reemplazar_variables_en_tablas(doc, diccionario_de_reemplazos):
@@ -782,7 +732,7 @@ def reemplazar_variables_en_tablas(doc, diccionario_de_reemplazos):
     
     Comportamiento:
         - Busca en TODAS las tablas del documento automáticamente
-        - Ignora variables que inician con: <<fig, <<reffigura, <<reftabla_, <<nuevatabla_, <<editartabla, <<external_doc
+        - Ignora variables que inician con: <<fig, <<reffigura, <<refnuevatabla_, <<reftabla_, <<nuevatabla_, <<editartabla, <<external_doc
         - Preserva el formato del texto original
         - Reutiliza la misma lógica de replace_text_variables_in_paragraph()
     
@@ -811,4 +761,4 @@ def reemplazar_variables_en_tablas(doc, diccionario_de_reemplazos):
         - reemplazar_texto_en_plantilla(): para párrafos del documento (NO tablas)
         - rellenar_tablas_en_plantilla(): para tablas dinámicas con DataFrames
     """
-    replace_text_variables_in_tables(doc, diccionario_de_reemplazos)
+    reemplazar_variables_en_tablas_del_documento(doc, diccionario_de_reemplazos)

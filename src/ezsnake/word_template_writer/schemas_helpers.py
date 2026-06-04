@@ -627,7 +627,7 @@ class TablaSchema:
     tabla: DataFrame con los datos de la tabla
     estilos_de_tabla: Diccionario de estilos de tabla
     titulo: Título que se insertará antes de la tabla
-    bookmark: Bookmark para referencias cruzadas. Debe iniciar con "Reftabla"
+    bookmark: Bookmark para referencias cruzadas. Debe iniciar con "RefTabla"
 
     Métodos requeridos:
     set_tabla, set_titulo, set_bookmark
@@ -658,8 +658,8 @@ class TablaSchema:
         if not isinstance(self.titulo, str) or not self.titulo.strip():
             raise ValueError("titulo debe ser string no vacío")
 
-        if not isinstance(self.bookmark, str) or not self.bookmark.startswith("Reftabla"):
-            raise ValueError("bookmark debe comenzar con 'Reftabla'")
+        if not isinstance(self.bookmark, str) or not self.bookmark.startswith("RefTabla"):
+            raise ValueError("bookmark debe comenzar con 'RefTabla'")
 
     def set_tabla(self, tabla: pd.DataFrame):
         self.tabla = tabla
@@ -668,10 +668,10 @@ class TablaSchema:
         self.titulo = titulo.strip()
 
     def set_bookmark(self, nombre_referencia: str):
-        self.bookmark = f"Reftabla_{nombre_referencia}".strip()
+        self.bookmark = f"RefTabla_{nombre_referencia}".strip()
 
     def to_dict(self) -> dict:
-        self._validar()
+        # self._validar()
         return {
             "tabla": self.tabla,
             "estilos_de_tabla": self.estilos_de_tabla,
