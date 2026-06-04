@@ -53,10 +53,12 @@ class EstilosTabla:
 
         Nota de uso:
                 - Por defecto, todas las filas y columnas usan la configuración de `por_defecto`.
-                - Para modificar el header (fila 0), se recomienda:
-                    * set_color_del_fondo_de_fila(0, (R, G, B))
-                    * set_color_del_texto_de_fila(0, (R, G, B))
-                    * set_estilo_de_fila(0, "estilo")
+                - Para modificar las filas de datos, usar los setters `por_fila` (índice 0 = primera fila de datos).
+                - Para modificar las filas de header (las que están por encima del marcador en la plantilla),
+                  usar los setters `por_header` (índice 0 = primera fila visual de la tabla):
+                    * set_color_del_header(0, (R, G, B))
+                    * set_color_del_texto_del_header(0, (R, G, B))
+                    * set_estilo_del_header(0, "estilo")
     
     Attributes:
         _doc: Documento Word para validación de estilos
@@ -95,7 +97,8 @@ class EstilosTabla:
             },
             "por_columna": {},
             "por_fila": {},
-            "por_celda": {}
+            "por_celda": {},
+            "por_header": {},
         }
     
     def reset(self):
@@ -104,7 +107,8 @@ class EstilosTabla:
             "por_defecto": {},
             "por_columna": {},
             "por_fila": {},
-            "por_celda": {}
+            "por_celda": {},
+            "por_header": {},
         }
     
     def to_dict(self) -> dict:
@@ -264,18 +268,54 @@ class EstilosTabla:
             self._config["por_fila"][fila] = {}
         self._config["por_fila"][fila]["estilo_parrafo"] = estilo
 
-    def set_color_del_fondo_de_fila(self, fila: int, color: Tuple[int, int, int]):
-        """Alias explícito para set_color_de_fila()."""
-        self.set_color_de_fila(fila, color)
-
     def set_color_del_texto_de_fila(self, fila: int, color: Tuple[int, int, int]):
-        """Establece color de texto para una fila (útil para fila header)."""
+        """Establece color de texto para una fila de datos."""
         self._validar_indice_fila(fila)
         self._validar_color(color)
         if fila not in self._config["por_fila"]:
             self._config["por_fila"][fila] = {}
         self._config["por_fila"][fila]["color_texto"] = color
-    
+
+    # ===== SETTERS POR HEADER =====
+
+    def set_color_del_header(self, fila_header: int, color: Tuple[int, int, int]):
+        """Establece el color de fondo para una fila de header.
+
+        Args:
+            fila_header: Índice de la fila de header (0-based, desde el tope de la tabla).
+            color: Tupla (R, G, B) con valores 0-255.
+        """
+        self._validar_indice_fila(fila_header)
+        self._validar_color(color)
+        if fila_header not in self._config["por_header"]:
+            self._config["por_header"][fila_header] = {}
+        self._config["por_header"][fila_header]["color_fondo"] = color
+
+    def set_estilo_del_header(self, fila_header: int, estilo: str):
+        """Establece el estilo de párrafo para una fila de header.
+
+        Args:
+            fila_header: Índice de la fila de header (0-based, desde el tope de la tabla).
+            estilo: Nombre del estilo de párrafo.
+        """
+        self._validar_indice_fila(fila_header)
+        if fila_header not in self._config["por_header"]:
+            self._config["por_header"][fila_header] = {}
+        self._config["por_header"][fila_header]["estilo_parrafo"] = estilo
+
+    def set_color_del_texto_del_header(self, fila_header: int, color: Tuple[int, int, int]):
+        """Establece el color del texto para una fila de header.
+
+        Args:
+            fila_header: Índice de la fila de header (0-based, desde el tope de la tabla).
+            color: Tupla (R, G, B) con valores 0-255.
+        """
+        self._validar_indice_fila(fila_header)
+        self._validar_color(color)
+        if fila_header not in self._config["por_header"]:
+            self._config["por_header"][fila_header] = {}
+        self._config["por_header"][fila_header]["color_texto"] = color
+
     # ===== SETTERS POR CELDA =====
     
     def set_color_de_celda(self, celda: Tuple[int, int], color: Tuple[int, int, int]):
@@ -332,6 +372,10 @@ class EstilosTabla:
     def get_config_de_celda(self, celda: Tuple[int, int]) -> dict:
         """Retorna toda la configuración de una celda"""
         return self._config["por_celda"].get(celda, {})
+
+    def get_config_de_header(self, fila_header: int) -> dict:
+        """Retorna toda la configuración de una fila de header"""
+        return self._config["por_header"].get(fila_header, {})
     
     # ===== VALIDADORES PRIVADOS =====
     

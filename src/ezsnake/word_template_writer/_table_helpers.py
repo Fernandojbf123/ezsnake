@@ -121,6 +121,9 @@ def _normalize_config_estilos(config_estilos: Union[EstilosTabla, dict, None], d
             raise ValueError(
                 f"Diccionario config_estilos debe contener las claves: {required_keys}"
             )
+        # Compatibilidad: agregar por_header si no está presente (diccionarios viejos)
+        if "por_header" not in config_estilos:
+            config_estilos = {**config_estilos, "por_header": {}}
         return config_estilos
     else:
         raise ValueError(
@@ -473,6 +476,19 @@ def fill_table(
     if opciones["detectar_merge"]:
         _apply_merged_cells_vertical(table, merge_regions, fila_inicio_datos)
     
+    # ===== PASO 9a: APLICAR ESTILOS A FILAS DE HEADER =====
+    # Las filas de header son las que están ANTES del marcador (índices 0..fila_marcador-1).
+    # Se aplica la config de por_header[fila_header] con la misma lógica de apply_cell_style.
+    config_header = config.get("por_header", {})
+    if config_header and fila_marcador > 0:
+        for header_row_idx in range(fila_marcador):
+            header_config = config_header.get(header_row_idx, {})
+            if header_config:
+                header_row = table.rows[header_row_idx]
+                for col_idx in range(len(table.columns)):
+                    cell = table.cell(header_row_idx, col_idx)
+                    apply_cell_style(cell, doc, config, header_row_idx, col_idx, header_config)
+
     # ===== PASO 9: APLICAR ESTILOS A CADA CELDA =====
     for df_row_idx in range(len(df)):
         table_row_idx = fila_inicio_datos + df_row_idx
