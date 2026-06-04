@@ -1,5 +1,6 @@
 import ezsnake.word_template_writer as ezw
 from docx import Document
+import pandas as pd
 
 
 ruta_plantilla =  "C:\\programacion\\codigos_python\\ezsnake\\tests\\demo.docx"
@@ -130,13 +131,21 @@ nuevas_variables = {
 }
 
 
-
+tabla = {
+    "encabezado_1": ["dato1", "dato2", "dato3"],
+    "encabezado_2": ["otrodato1", "otrodato2", "otrodato3"]
+}
+df = pd.DataFrame(tabla)
+estilo_de_tabla = ezw.EstilosTabla()
+estilo_de_tabla.set_color_del_header(0, (36, 64, 97))  # Azul 5ta columna al fondo de colores de word
+estilo_de_tabla.set_color_de_columna(0, (255, 228, 225))  # Rosa claro
+# estilo_de_tabla.set_color_de_fila(0, (224, 255, 255))  # Cian claro
 
 diccionario_de_tablas = {
-    "<<nuevatabla_resultados>>": {
+    "<<nuevatabla_tabla1>>": {
                 "tabla": df,
-                "estilos_de_tabla": estilos,
-                "titulo": "Tabla 1. Resultados del análisis",
+                "estilos_de_tabla": estilo_de_tabla.to_dict(),
+                "titulo": "Resultados del análisis",
                 "bookmark": "RefTabla_Resultados_1",
             }
 }
@@ -150,5 +159,7 @@ ezw.reemplazar_texto_en_plantilla(doc, nuevas_variables) # Esto pondría en el d
 
 ezw.reemplazar_variable_por_figura(doc, nuevas_variables)
 ezw.reemplazar_referencias_cruzadas_de_figuras(doc, nuevas_variables)
+ezw.reemplazar_variable_por_tabla(doc, diccionario_de_tablas)
+
 
 doc.save("C:\\programacion\\codigos_python\\ezsnake\\tests\\doc_listo.docx")

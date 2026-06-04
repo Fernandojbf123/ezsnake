@@ -10,8 +10,9 @@ Import from the public API in api.py instead.
 
 from typing import Optional, Tuple
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.oxml.shared import OxmlElement
+from docx.oxml.parser import OxmlElement
 from docx.oxml.ns import qn
+from docx.shared import RGBColor
 
 
 def rgb_to_hex(rgb: Tuple[int, int, int]) -> str:
@@ -148,8 +149,9 @@ def apply_cell_text_color(cell, color: Tuple[int, int, int]):
         Aplica el color a todos los runs del primer párrafo.
     """
     if len(cell.paragraphs) > 0:
+        rgb_color = RGBColor(color[0], color[1], color[2])
         for run in cell.paragraphs[0].runs:
-            run.font.color.rgb = (color[0] << 16) | (color[1] << 8) | color[2]
+            run.font.color.rgb = rgb_color
 
 
 def apply_row_height(row, height: int):

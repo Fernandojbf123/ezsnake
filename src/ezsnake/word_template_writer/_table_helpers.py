@@ -494,9 +494,15 @@ def fill_table(
             if header_row_idx < 0 or header_row_idx >= len(table.rows):
                 continue
 
+            # Combinar por_defecto con header_config (igual que _merge_style_config)
+            merged_header_config = {}
+            if "por_defecto" in config:
+                merged_header_config.update(config["por_defecto"])
+            merged_header_config.update(header_config)
+
             for col_idx in range(len(table.columns)):
                 cell = table.cell(header_row_idx, col_idx)
-                apply_cell_style(cell, doc, config, header_row_idx, col_idx, header_config)
+                apply_cell_style(cell, doc, config, header_row_idx, col_idx, merged_header_config)
 
     # ===== PASO 9: APLICAR ESTILOS A CADA CELDA =====
     for df_row_idx in range(len(df)):
@@ -697,7 +703,18 @@ def crear_tabla_desde_marcador(
         if header_cell.paragraphs and header_cell.paragraphs[0].runs:
             header_cell.paragraphs[0].runs[0].bold = True
 
-        merged_header_config = config.get("por_defecto", {}).copy()
+        # Combinar por_defecto con por_header[0] si existe
+        merged_header_config = {}
+        if "por_defecto" in config:
+            merged_header_config.update(config["por_defecto"])
+        
+        # Aplicar configuración específica de header si existe (soporta int 0 o string "0")
+        if "por_header" in config:
+            for header_key in [0, "0"]:
+                if header_key in config["por_header"]:
+                    merged_header_config.update(config["por_header"][header_key])
+                    break
+        
         apply_cell_style(header_cell, doc, config, 0, col_idx, merged_header_config)
 
     # Detectar merges para el cuerpo de la tabla
