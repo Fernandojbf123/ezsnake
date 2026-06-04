@@ -66,7 +66,7 @@ diccionario = {
     "<<cliente>>": "ACME",
     "<<fig_mapa>>": [...],              # ignorada por esta funcion
     "<<nuevatabla_resumen>>": {...},    # ignorada por esta funcion
-    "<<reftabla_resumen>>": ["Reftabla_Resumen_1"],  # ignorada
+    "<<reftabla_resumen>>": ["RefTabla_Resumen_1"],  # ignorada
 }
 reemplazar_texto_en_plantilla(doc, diccionario)
 ```
@@ -135,7 +135,7 @@ diccionario = {
         "tabla": df,
         "estilos_de_tabla": estilos,
         "titulo": "Tabla 1. Resumen",
-        "bookmark": "Reftabla_Resumen_1",
+        "bookmark": "RefTabla_Resumen_1",
     }
 }
 
@@ -147,7 +147,7 @@ reemplazar_variable_por_tabla(doc, diccionario)
 
 ```python
 diccionario = {
-    "<<reftabla_resumen>>": ["Reftabla_Resumen_1"],
+    "<<reftabla_resumen>>": ["RefTabla_Resumen_1"],
 }
 reemplazar_referencias_cruzadas_de_tablas(doc, diccionario)
 ```

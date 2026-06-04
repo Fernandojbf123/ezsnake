@@ -137,7 +137,7 @@ diccionario_de_tablas = {
                 "tabla": df,
                 "estilos_de_tabla": estilos,
                 "titulo": "Tabla 1. Resultados del análisis",
-                "bookmark": "Reftabla_Resultados_1",
+                "bookmark": "RefTabla_Resultados_1",
             }
 }
 
