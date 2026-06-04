@@ -307,19 +307,17 @@ def reemplazar_referencias_cruzadas_de_tablas(doc, diccionario_de_reemplazos: di
     print(msg)
 
 
-def reemplazar_variable_por_tabla(doc, diccionario_de_reemplazos: dict, diccionario_de_caracteristicas_tabla: dict):
+def reemplazar_variable_por_tabla(doc, diccionario_de_reemplazos: dict):
     """Reemplaza variables <<nuevatabla_*>> por tablas y prepara referencias <<reftabla_*>>.
 
     Args:
         doc: Objeto Document de python-docx
         diccionario_de_reemplazos: Diccionario con variables del documento
-        diccionario_de_caracteristicas_tabla: Diccionario con configuración por variable
-            (opcionalmente puede venir embebida en diccionario_de_reemplazos)
 
     Estructura esperada de cada variable de tabla:
         {
             "tabla": pd.DataFrame,
-            "estilos_de_tabla": EstilosTabla,
+            "estilos_de_tabla": dict,
             "titulo": "Texto del título de tabla",
             "bookmark": "Reftabla_MiTabla"
         }
@@ -337,7 +335,7 @@ def reemplazar_variable_por_tabla(doc, diccionario_de_reemplazos: dict, dicciona
 
         doc = Document('plantilla.docx')
         df = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
-        estilos = EstilosTabla(doc)
+        estilos = EstilosTabla(doc).to_dict()
 
         diccionario = {
             "<<nuevatabla_resultados>>": {
@@ -348,14 +346,11 @@ def reemplazar_variable_por_tabla(doc, diccionario_de_reemplazos: dict, dicciona
             }
         }
 
-        reemplazar_variable_por_tabla(doc, diccionario, diccionario)
+        reemplazar_variable_por_tabla(doc, diccionario)
         doc.save('documento_con_tablas.docx')
     """
     if diccionario_de_reemplazos is None:
         raise ValueError("El diccionario de reemplazos no puede ser None.")
-
-    if diccionario_de_caracteristicas_tabla is None:
-        raise ValueError("El diccionario de características de tabla no puede ser None.")
 
     variables_tabla = {
         k: v for k, v in diccionario_de_reemplazos.items()
@@ -364,8 +359,7 @@ def reemplazar_variable_por_tabla(doc, diccionario_de_reemplazos: dict, dicciona
 
     referencias_tablas = {}
 
-    for variable, config_embebida in variables_tabla.items():
-        config_tabla = diccionario_de_caracteristicas_tabla.get(variable, config_embebida)
+    for variable, config_tabla in variables_tabla.items():
 
         if not isinstance(config_tabla, dict):
             raise ValueError(

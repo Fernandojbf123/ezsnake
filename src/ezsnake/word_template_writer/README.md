@@ -46,7 +46,7 @@ reemplazar_texto_en_plantilla(doc, diccionario)
 reemplazar_variables_en_tablas(doc, diccionario)
 reemplazar_variable_por_figura(doc, diccionario)
 reemplazar_referencias_cruzadas_de_figuras(doc, diccionario)
-reemplazar_variable_por_tabla(doc, diccionario, diccionario)
+reemplazar_variable_por_tabla(doc, diccionario)
 reemplazar_referencias_cruzadas_de_tablas(doc, diccionario)
 insertar_documento_externo_en_plantilla(doc, diccionario)
 rellenar_tablas_en_plantilla(doc, diccionario)
@@ -128,7 +128,7 @@ import pandas as pd
 from word_template_writer import EstilosTabla
 
 df = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
-estilos = EstilosTabla(doc)
+estilos = EstilosTabla(doc).to_dict()
 
 diccionario = {
     "<<nuevatabla_resumen>>": {
@@ -139,7 +139,7 @@ diccionario = {
     }
 }
 
-reemplazar_variable_por_tabla(doc, diccionario, diccionario)
+reemplazar_variable_por_tabla(doc, diccionario)
 # agrega automaticamente <<reftabla_resumen>> en el diccionario
 ```
 

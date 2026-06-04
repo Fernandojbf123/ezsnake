@@ -625,7 +625,7 @@ class TablaSchema:
 
     Atributos:
     tabla: DataFrame con los datos de la tabla
-    estilos_de_tabla: Instancia de EstilosTabla
+    estilos_de_tabla: Diccionario de estilos de tabla
     titulo: Título que se insertará antes de la tabla
     bookmark: Bookmark para referencias cruzadas. Debe iniciar con "Reftabla"
 
@@ -636,12 +636,12 @@ class TablaSchema:
     def __init__(
         self,
         tabla: Optional[pd.DataFrame] = None,
-        estilos_de_tabla: Optional[EstilosTabla] = None,
+        estilos_de_tabla: Optional[dict] = None,
         titulo: str = "",
         bookmark: str = "",
     ):
         self.tabla = tabla if tabla is not None else pd.DataFrame()
-        self.estilos_de_tabla = estilos_de_tabla
+        self.estilos_de_tabla = estilos_de_tabla if estilos_de_tabla is not None else {}
         self.titulo = titulo
         self.bookmark = bookmark
 
@@ -652,8 +652,8 @@ class TablaSchema:
         if self.tabla.empty:
             raise ValueError("tabla no puede estar vacía")
 
-        if not isinstance(self.estilos_de_tabla, EstilosTabla):
-            raise ValueError("estilos_de_tabla debe ser una instancia de EstilosTabla")
+        if not isinstance(self.estilos_de_tabla, dict):
+            raise ValueError("estilos_de_tabla debe ser un diccionario")
 
         if not isinstance(self.titulo, str) or not self.titulo.strip():
             raise ValueError("titulo debe ser string no vacío")
