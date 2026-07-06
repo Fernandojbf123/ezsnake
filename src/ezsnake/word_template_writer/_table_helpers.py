@@ -13,7 +13,7 @@ import re
 from typing import Union, Optional, List, Tuple
 from docx.oxml.ns import qn
 from .schemas_helpers import EstilosTabla, OpcionesTabla
-from ._table_styling import apply_cell_style, apply_row_height
+from ._table_styling import apply_cell_style, apply_row_height, apply_table_borders
 
 
 def insertar_titulo_de_tabla_con_bookmark(doc, marcador_tabla, titulo, bookmark, estilo_titulo="Normal"):
@@ -534,6 +534,9 @@ def fill_table(
     for row_idx in range(total_filas - 1, ultima_fila_con_datos, -1):
         _delete_row(table, row_idx)
     
+    # Aplicar bordes a la tabla
+    apply_table_borders(table)
+    
     return doc
 
 
@@ -745,6 +748,9 @@ def crear_tabla_desde_marcador(
 
     if opciones["detectar_merge"]:
         _apply_merged_cells_vertical(table, merge_regions, fila_inicio_datos=1)
+
+    # Aplicar bordes a la tabla
+    apply_table_borders(table)
 
     _replace_marker_in_paragraph(paragraph, marcador_tabla, "")
     if not paragraph.text.strip():

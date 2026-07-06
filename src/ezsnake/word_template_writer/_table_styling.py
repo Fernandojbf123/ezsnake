@@ -15,6 +15,49 @@ from docx.oxml.ns import qn
 from docx.shared import RGBColor
 
 
+def apply_table_borders(table):
+    """
+    Aplica bordes completos (internos y externos) a una tabla de Word.
+    
+    Args:
+        table: Objeto Table de python-docx
+    
+    Note:
+        Aplica bordes simples negros a todos los lados de la tabla (top, bottom, left, right, insideH, insideV).
+        Grosor: 4 (tamaño de borde simple en Word)
+    
+    Example:
+        >>> table = doc.tables[0]
+        >>> apply_table_borders(table)
+    """
+    tbl = table._element
+    tblPr = tbl.tblPr
+    if tblPr is None:
+        tblPr = OxmlElement('w:tblPr')
+        tbl.insert(0, tblPr)
+    
+    # Remover bordes anteriores si existen
+    tblBorders = tblPr.find(qn('w:tblBorders'))
+    if tblBorders is not None:
+        tblPr.remove(tblBorders)
+    
+    # Crear nuevo elemento de bordes
+    tblBorders = OxmlElement('w:tblBorders')
+    
+    # Definir los bordes: top, left, bottom, right, insideH (horizontal interno), insideV (vertical interno)
+    border_names = ['top', 'left', 'bottom', 'right', 'insideH', 'insideV']
+    
+    for border_name in border_names:
+        border = OxmlElement(f'w:{border_name}')
+        border.set(qn('w:val'), 'single')  # Tipo de borde: single line
+        border.set(qn('w:sz'), '4')         # Grosor: 4 (1/8 pt increments, 4 = 0.5pt)
+        border.set(qn('w:space'), '0')      # Espaciado
+        border.set(qn('w:color'), '000000') # Color negro
+        tblBorders.append(border)
+    
+    tblPr.append(tblBorders)
+
+
 def rgb_to_hex(rgb: Tuple[int, int, int]) -> str:
     """
     Convierte una tupla RGB a formato hexadecimal para XML.

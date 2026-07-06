@@ -104,29 +104,116 @@ def replace_text_variables_in_paragraph(paragraph, lista_variables):
             
             return paragraph
     
-    # Comportamiento estándar: reemplazar variables en el texto
-    texto_reemplazado = full_text
-    for key, value in lista_variables:
-        if key in texto_reemplazado:
-            # Convertir value a string (si es lista, tomar el primer elemento)
-            if isinstance(value, list) and len(value) > 0:
-                new_value, _ = _parse_item_lista_a_texto_y_estilo(value[0])
-            else:
-                new_value = str(value)
-            # Reemplazar todas las ocurrencias de esta variable
-            texto_reemplazado = texto_reemplazado.replace(key, new_value)
+    # Comportamiento estándar: reemplazar variables preservando formato de runs
     
-    # Si no hubo cambios, retornar
-    if texto_reemplazado == full_text:
+    # Crear diccionario de reemplazos
+    reemplazos = {}
+    for key, value in lista_variables:
+        if isinstance(value, list) and len(value) > 0:
+            new_value, _ = _parse_item_lista_a_texto_y_estilo(value[0])
+        else:
+            new_value = str(value)
+        reemplazos[key] = new_value
+    
+    # Estrategia 1: Intentar reemplazar run por run (caso óptimo - preserva formato)
+    for run in paragraph.runs:
+        texto_run = run.text
+        for key, new_value in reemplazos.items():
+            if key in texto_run:
+                texto_run = texto_run.replace(key, new_value)
+        run.text = texto_run
+    
+    # Verificar si aún quedan marcadores sin reemplazar (estaban partidos entre runs)
+    texto_actual = "".join(run.text for run in paragraph.runs)
+    marcadores_pendientes = [key for key in reemplazos.keys() if key in texto_actual]
+    
+    if not marcadores_pendientes:
+        # Todos los reemplazos se hicieron en la Estrategia 1
         return paragraph
     
-    # Limpiar todos los runs excepto el primero
-    primer_run = paragraph.runs[0] if paragraph.runs else paragraph.add_run()
-    primer_run.text = texto_reemplazado
+    # Estrategia 2: Reconstruir preservando formato (para marcadores partidos entre runs)
+    # Guardar información de formato de cada run con su posición en el texto
+    runs_info = []
+    pos = 0
+    for run in paragraph.runs:
+        run_len = len(run.text)
+        runs_info.append({
+            'start': pos,
+            'end': pos + run_len,
+            'text': run.text,
+            'bold': run.bold,
+            'italic': run.italic,
+            'underline': run.underline,
+            'font_name': run.font.name if run.font.name else None,
+            'font_size': run.font.size,
+            'color': run.font.color.rgb if run.font.color.rgb else None,
+        })
+        pos += run_len
     
-    # Limpiar el resto de runs
-    for i in range(1, len(paragraph.runs)):
-        paragraph.runs[i].text = ""
+    # Hacer los reemplazos en el texto completo
+    texto_nuevo = texto_actual
+    for key, new_value in reemplazos.items():
+        texto_nuevo = texto_nuevo.replace(key, new_value)
+    
+    # Si no hubo cambios, retornar (no debería pasar, pero por seguridad)
+    if texto_nuevo == texto_actual:
+        return paragraph
+    
+    # Calcular el mapeo de posiciones: posición_nueva -> formato_original
+    # Esto es complejo, así que usaremos una aproximación: mapear por carácter
+    formato_por_posicion = []
+    for run_info in runs_info:
+        for i in range(run_info['start'], run_info['end']):
+            formato_por_posicion.append({
+                'bold': run_info['bold'],
+                'italic': run_info['italic'],
+                'underline': run_info['underline'],
+                'font_name': run_info['font_name'],
+                'font_size': run_info['font_size'],
+                'color': run_info['color'],
+            })
+    
+    # Limpiar todos los runs del párrafo
+    for run in paragraph.runs:
+        run.text = ""
+    
+    # Reconstruir el párrafo aplicando formato según el texto original
+    # Usamos una heurística: aplicar el formato del primer carácter de cada segmento
+    pos_original = 0
+    pos_nueva = 0
+    
+    while pos_nueva < len(texto_nuevo):
+        # Encontrar hasta dónde llega este segmento con el mismo formato
+        if pos_original < len(formato_por_posicion):
+            formato_actual = formato_por_posicion[pos_original]
+        else:
+            # Si nos pasamos del texto original (por reemplazos más largos), usar formato por defecto
+            formato_actual = formato_por_posicion[-1] if formato_por_posicion else {}
+        
+        # Encontrar cuántos caracteres consecutivos tienen el mismo formato
+        longitud_segmento = 1
+        while (pos_nueva + longitud_segmento < len(texto_nuevo) and 
+               pos_original + longitud_segmento < len(formato_por_posicion) and
+               formato_por_posicion[pos_original + longitud_segmento] == formato_actual):
+            longitud_segmento += 1
+        
+        # Ajustar si el segmento es más largo debido a un reemplazo
+        texto_segmento = texto_nuevo[pos_nueva:pos_nueva + longitud_segmento]
+        
+        # Crear un nuevo run con este texto y formato
+        new_run = paragraph.add_run(texto_segmento)
+        new_run.bold = formato_actual.get('bold')
+        new_run.italic = formato_actual.get('italic')
+        new_run.underline = formato_actual.get('underline')
+        if formato_actual.get('font_name'):
+            new_run.font.name = formato_actual.get('font_name')
+        if formato_actual.get('font_size'):
+            new_run.font.size = formato_actual.get('font_size')
+        if formato_actual.get('color'):
+            new_run.font.color.rgb = formato_actual.get('color')
+        
+        pos_nueva += longitud_segmento
+        pos_original += longitud_segmento
     
     return paragraph
 
