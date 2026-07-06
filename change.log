@@ -11,3 +11,7 @@ Version 0.3.4
 - Se corrigen bugs y se cambian nombres de funciones
 - Se pueden insertar tablas en el documento de Word con referencias cruzadas.
 Pendiente pruebas de funciones de edicion de tablas
+
+
+´Version 0.3.11
+- Se corrigen bugs para que ahora se puedan reemplazar variables en párrafos sin alterar el fomato.
