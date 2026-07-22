@@ -156,7 +156,7 @@ def calcular_tiempo_de_viaje(lon2: float, lat2: float, lon1: float, lat1: float,
     return tiempo_horas
 
 
-def timestamp_a_texto_espanol(fecha: pd.Timestamp, mes_y_anio: bool) -> str:
+def timestamp_a_texto_espanol(fecha: pd.Timestamp, mes_y_anio: bool = False, con_horas: bool = False) -> str:
     """
     Convierte un timestamp de pandas a un formato de texto en español.
     Entradas:
@@ -182,6 +182,10 @@ def timestamp_a_texto_espanol(fecha: pd.Timestamp, mes_y_anio: bool) -> str:
     
     if mes_y_anio:
         return f"{mes} de {anio}"
+    
+    if con_horas:
+        hora = fecha.hour
+        return f"{dia:02d} de {mes} de {anio} a las {hora:02d} horas"
     
     return f"{dia:02d} de {mes} de {anio}"
 

@@ -7,7 +7,7 @@ packages = ["src/ezsnake"]
 
 [project]
 name = "ezsnake"
-version = "0.3.11"
+version = "0.3.12"
 
 description = """ 
 Paquete Python para manipulación sencilla de Word, datos y NetCDF. 
