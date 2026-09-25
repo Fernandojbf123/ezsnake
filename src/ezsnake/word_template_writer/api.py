@@ -220,7 +220,7 @@ def reemplazar_referencias_cruzadas_de_figuras(doc, diccionario_de_reemplazos: d
                 # Caso: Múltiples figuras - "Figura X a la Y"
                 aux_insertar_referencia_cruzada(parrafo, primer_bookmark, texto_antes="Figura", mostrar_numero=True)
                 parrafo.add_run(" a la ")
-                aux_insertar_referencia_cruzada(parrafo, ultimo_bookmark, texto_antes="", mostrar_numero=True)
+                aux_insertar_referencia_cruzada(parrafo, ultimo_bookmark, texto_antes="Figura", mostrar_numero=True)
             
             # Avanzar posición actual
             pos_actual = pos_marcador + len(variable_ref)
@@ -437,16 +437,17 @@ def reemplazar_texto_en_plantilla(doc, diccionario_de_reemplazos):
     }
     
     # Para cada párrafo, procesar TODAS las variables de texto de una sola vez
-    for parrafo in doc.paragraphs:
-        # Encontrar todas las variables que están en este párrafo
-        variables_en_parrafo = []
-        for variable, dato in variables_texto.items():
-            if variable in parrafo.text:
-                variables_en_parrafo.append((variable, dato))
-        
-        # Si hay variables en este párrafo, reemplazarlas todas de una vez
-        if variables_en_parrafo:
-            replace_text_variables_in_paragraph(parrafo, variables_en_parrafo)
+    for it in [0,1]:
+        for parrafo in doc.paragraphs:
+            # Encontrar todas las variables que están en este párrafo
+            variables_en_parrafo = []
+            for variable, dato in variables_texto.items():
+                if variable in parrafo.text:
+                    variables_en_parrafo.append((variable, dato))
+            
+            # Si hay variables en este párrafo, reemplazarlas todas de una vez
+            if variables_en_parrafo:
+                replace_text_variables_in_paragraph(parrafo, variables_en_parrafo)
     
     msg = "Se agregaron los textos al documento."
     print(msg)

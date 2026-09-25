@@ -7,6 +7,8 @@ Private module - Not intended for direct external use.
 Import from the public API in api.py instead.
 """
 
+from docx.oxml.ns import qn
+
 
 def _parse_item_lista_a_texto_y_estilo(item):
     """Normaliza un elemento de lista a (texto, estilo).
@@ -22,6 +24,17 @@ def _parse_item_lista_a_texto_y_estilo(item):
         return texto, estilo
 
     return str(item), ""
+
+
+def _run_contiene_campo_complejo(run):
+    """True si el run forma parte de un campo complejo de Word (ej: referencia cruzada).
+
+    Estos runs contienen <w:fldChar> (begin/separate/end) o <w:instrText> y no deben
+    ser reescritos: run.text = "" invoca clear_content(), que borra ese contenido y
+    rompe el campo (la referencia deja de actualizarse o desaparece).
+    """
+    r = run._r
+    return r.find(qn("w:fldChar")) is not None or r.find(qn("w:instrText")) is not None
 
 
 def replace_text_variables_in_paragraph(paragraph, lista_variables):
@@ -117,11 +130,20 @@ def replace_text_variables_in_paragraph(paragraph, lista_variables):
     
     # Estrategia 1: Intentar reemplazar run por run (caso óptimo - preserva formato)
     for run in paragraph.runs:
+        # Los runs que forman parte de un campo complejo (ej: referencias cruzadas
+        # <<w:fldChar>>/<<w:instrText>>) no deben tocarse: asignar run.text los destruye,
+        # aunque no contengan ningún marcador (run.text = "" también borra fldChar/instrText).
+        if _run_contiene_campo_complejo(run):
+            continue
         texto_run = run.text
+        texto_reemplazado = texto_run
         for key, new_value in reemplazos.items():
-            if key in texto_run:
-                texto_run = texto_run.replace(key, new_value)
-        run.text = texto_run
+            if key in texto_reemplazado:
+                texto_reemplazado = texto_reemplazado.replace(key, new_value)
+        # Solo reasignar si hubo un cambio real: asignar run.text siempre invoca
+        # clear_content(), que borra cualquier contenido no textual del run.
+        if texto_reemplazado != texto_run:
+            run.text = texto_reemplazado
     
     # Verificar si aún quedan marcadores sin reemplazar (estaban partidos entre runs)
     texto_actual = "".join(run.text for run in paragraph.runs)
@@ -132,75 +154,77 @@ def replace_text_variables_in_paragraph(paragraph, lista_variables):
         return paragraph
     
     # Estrategia 2: Reconstruir preservando formato (para marcadores partidos entre runs)
-    # Guardar información de formato de cada run con su posición en el texto
-    runs_info = []
-    pos = 0
-    for run in paragraph.runs:
-        run_len = len(run.text)
-        runs_info.append({
-            'start': pos,
-            'end': pos + run_len,
-            'text': run.text,
+    # Los runs de campos complejos (referencias cruzadas) actúan como límites fijos:
+    # se reconstruye cada tramo de runs "normales" entre ellos de forma aislada e in-place,
+    # para no alterar la posición del campo en el párrafo.
+    runs = list(paragraph.runs)
+    n = len(runs)
+    i = 0
+    while i < n:
+        if _run_contiene_campo_complejo(runs[i]):
+            i += 1
+            continue
+        j = i
+        tramo = []
+        while j < n and not _run_contiene_campo_complejo(runs[j]):
+            tramo.append(runs[j])
+            j += 1
+        anchor_run = runs[j] if j < n else None
+        _reconstruir_tramo_de_runs(paragraph, tramo, reemplazos, anchor_run)
+        i = j
+    
+    return paragraph
+
+
+def _reconstruir_tramo_de_runs(paragraph, tramo, reemplazos, anchor_run):
+    """Reemplaza marcadores partidos entre los runs de `tramo`, preservando su posición.
+
+    `tramo` es una secuencia contigua de runs "normales" (sin fldChar/instrText).
+    Los nuevos runs se insertan justo antes de `anchor_run` (o al final del párrafo
+    si `anchor_run` es None), y los runs originales del tramo se eliminan.
+    """
+    texto_original = "".join(run.text for run in tramo)
+
+    texto_nuevo = texto_original
+    for key, new_value in reemplazos.items():
+        texto_nuevo = texto_nuevo.replace(key, new_value)
+
+    if texto_nuevo == texto_original:
+        return
+
+    # Mapear cada posición del texto original a su formato de run
+    formato_por_posicion = []
+    for run in tramo:
+        formato_run = {
             'bold': run.bold,
             'italic': run.italic,
             'underline': run.underline,
             'font_name': run.font.name if run.font.name else None,
             'font_size': run.font.size,
             'color': run.font.color.rgb if run.font.color.rgb else None,
-        })
-        pos += run_len
-    
-    # Hacer los reemplazos en el texto completo
-    texto_nuevo = texto_actual
-    for key, new_value in reemplazos.items():
-        texto_nuevo = texto_nuevo.replace(key, new_value)
-    
-    # Si no hubo cambios, retornar (no debería pasar, pero por seguridad)
-    if texto_nuevo == texto_actual:
-        return paragraph
-    
-    # Calcular el mapeo de posiciones: posición_nueva -> formato_original
-    # Esto es complejo, así que usaremos una aproximación: mapear por carácter
-    formato_por_posicion = []
-    for run_info in runs_info:
-        for i in range(run_info['start'], run_info['end']):
-            formato_por_posicion.append({
-                'bold': run_info['bold'],
-                'italic': run_info['italic'],
-                'underline': run_info['underline'],
-                'font_name': run_info['font_name'],
-                'font_size': run_info['font_size'],
-                'color': run_info['color'],
-            })
-    
-    # Limpiar todos los runs del párrafo
-    for run in paragraph.runs:
-        run.text = ""
-    
-    # Reconstruir el párrafo aplicando formato según el texto original
-    # Usamos una heurística: aplicar el formato del primer carácter de cada segmento
+        }
+        formato_por_posicion.extend([formato_run] * len(run.text))
+
+    # Construir los nuevos runs con el formato heredado, en el orden correcto
     pos_original = 0
     pos_nueva = 0
-    
+    nuevos_runs = []
+
     while pos_nueva < len(texto_nuevo):
-        # Encontrar hasta dónde llega este segmento con el mismo formato
         if pos_original < len(formato_por_posicion):
             formato_actual = formato_por_posicion[pos_original]
         else:
-            # Si nos pasamos del texto original (por reemplazos más largos), usar formato por defecto
             formato_actual = formato_por_posicion[-1] if formato_por_posicion else {}
-        
-        # Encontrar cuántos caracteres consecutivos tienen el mismo formato
+
         longitud_segmento = 1
-        while (pos_nueva + longitud_segmento < len(texto_nuevo) and 
+        while (pos_nueva + longitud_segmento < len(texto_nuevo) and
                pos_original + longitud_segmento < len(formato_por_posicion) and
                formato_por_posicion[pos_original + longitud_segmento] == formato_actual):
             longitud_segmento += 1
-        
-        # Ajustar si el segmento es más largo debido a un reemplazo
+
         texto_segmento = texto_nuevo[pos_nueva:pos_nueva + longitud_segmento]
-        
-        # Crear un nuevo run con este texto y formato
+
+        # add_run() agrega el run al final del párrafo; se reposiciona más abajo.
         new_run = paragraph.add_run(texto_segmento)
         new_run.bold = formato_actual.get('bold')
         new_run.italic = formato_actual.get('italic')
@@ -211,11 +235,20 @@ def replace_text_variables_in_paragraph(paragraph, lista_variables):
             new_run.font.size = formato_actual.get('font_size')
         if formato_actual.get('color'):
             new_run.font.color.rgb = formato_actual.get('color')
-        
+        nuevos_runs.append(new_run)
+
         pos_nueva += longitud_segmento
         pos_original += longitud_segmento
-    
-    return paragraph
+
+    # Reubicar los nuevos runs justo antes del límite (o dejarlos al final si no hay límite)
+    if anchor_run is not None:
+        anchor_element = anchor_run._r
+        for new_run in nuevos_runs:
+            anchor_element.addprevious(new_run._r)
+
+    # Eliminar los runs originales del tramo (ya reemplazados por los nuevos)
+    for run in tramo:
+        run._r.getparent().remove(run._r)
 
 
 def replace_text_variables_in_tables(doc, diccionario_de_reemplazos):

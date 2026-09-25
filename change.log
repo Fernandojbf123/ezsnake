@@ -13,5 +13,17 @@ Version 0.3.4
 Pendiente pruebas de funciones de edicion de tablas
 
 
-´Version 0.3.11
+Version 0.3.11
 - Se corrigen bugs para que ahora se puedan reemplazar variables en párrafos sin alterar el fomato.
+
+Version 0.3.12
+- Se corrige:
+- Función reemplazar_texto_en_plantilla; ahora se respeta el formato (ejemplo, negritas o cursivas)
+
+Version 0.3.13
+- Se corrige:
+- Función reemplazar_texto_en_plantilla; ahora no se borran las referencias cruzaadas al reemplazar textos
+- Función reemplazar_referencias_cruzadas_de_figuras, ahora se agrega De la Figura X a la Figura Y cuando hay múltiples figuras.
+- Se mejora el documento de ejemplo y sus ejemplos para abarcar más casos de uso.
+Pendientes:
+- Verificar que no se borren las referencias cruzadas al insertar referencias cruzadas de figuras o tablas.

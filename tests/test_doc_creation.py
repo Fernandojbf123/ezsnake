@@ -26,7 +26,7 @@ dict_de_reemplazos["<<lista_de_objetivos>>"] = [
 
 
 # Ejemplo 3: insertar una figura sin título
-dict_de_reemplazos["<<figura_ejemplo>>"] = [{
+dict_de_reemplazos["<<fig_sin_titulo>>"] = [{
         "ruta": "C:\\programacion\\codigos_python\\ezsnake\\tests\\figuras_demo\\fig_sec_1_1.jpg",
         "titulo": "", # No lleva título porque ya está en el documento
         "tamanio": 2,
@@ -36,11 +36,11 @@ dict_de_reemplazos["<<figura_ejemplo>>"] = [{
     }]
 
 
-dict_de_reemplazos["<<figura_con_titulo>>"] = [{
+dict_de_reemplazos["<<fig_con_titulo>>"] = [{
         "ruta": "C:\\programacion\\codigos_python\\ezsnake\\tests\\figuras_demo\\fig_sec_1_1.jpg",
         "titulo": "Se ve la carita de una niña", # Título personalizado para esta figura
         "tamanio": 2,
-        "bookmark": "<<RefFigura_sec_1_1>>", 
+        "bookmark": "<<RefFigura_con_titulo>>", 
         "estilo_figura":"Figura",
         "estilo_titulo": "Carcentrado"
     }]
@@ -81,7 +81,7 @@ nuevas_variables = {
             "ruta": "C:\\programacion\\codigos_python\\ezsnake\\tests\\figuras_demo\\fig_sec_1_1.jpg",
             "titulo": "Momardo 1-1",
             "tamanio": 2,
-            "bookmark": "<<Ref_sec_1_1>>",
+            "bookmark": "<<RefFigura_sec_1_1>>",
             "estilo_figura":"Figura",
             "estilo_titulo": "Carcentrado"
         },
@@ -89,7 +89,7 @@ nuevas_variables = {
             "ruta": "C:\\programacion\\codigos_python\\ezsnake\\tests\\figuras_demo\\fig_sec_1_2.jpg",
             "titulo": "Momardo 1-2",
             "tamanio": 2,
-            "bookmark": "<<Ref_sec_1_2>>",
+            "bookmark": "<<RefFigura_sec_1_2>>",
             "estilo_figura":"Figura",
             "estilo_titulo": "Carcentrado"
         },
@@ -97,7 +97,7 @@ nuevas_variables = {
             "ruta": "C:\\programacion\\codigos_python\\ezsnake\\tests\\figuras_demo\\fig_sec_1_3.jpg",
             "titulo": "Momardo 1-3",
             "tamanio": 2,
-            "bookmark": "<<Ref_sec_1_3>>",
+            "bookmark": "<<RefFigura_sec_1_3>>",
             "estilo_figura":"Figura",
             "estilo_titulo": "Carcentrado"
         }],
@@ -107,7 +107,7 @@ nuevas_variables = {
             "ruta": "C:\\programacion\\codigos_python\\ezsnake\\tests\\figuras_demo\\fig_sec_2_1.jpg",
             "titulo": "Momardo 2-1",
             "tamanio": 2,
-            "bookmark": "<<Ref_sec_2_1>>",
+            "bookmark": "<<RefFigura_sec_2_1>>",
             "estilo_figura":"Figura",
             "estilo_titulo": "Carcentrado"
         },
@@ -115,7 +115,7 @@ nuevas_variables = {
             "ruta": "C:\\programacion\\codigos_python\\ezsnake\\tests\\figuras_demo\\fig_sec_2_2.jpg",
             "titulo": "Momardo 2-2",
             "tamanio": 2,
-            "bookmark": "<<Ref_sec_2_2>>",
+            "bookmark": "<<RefFigura_sec_2_2>>",
             "estilo_figura":"Figura",
             "estilo_titulo": "Carcentrado"
         },
@@ -123,7 +123,7 @@ nuevas_variables = {
             "ruta": "C:\\programacion\\codigos_python\\ezsnake\\tests\\figuras_demo\\fig_sec_2_3.jpg",
             "titulo": "Momardo 2-3",
             "tamanio": 2,
-            "bookmark": "<<Ref_sec_2_3>>",
+            "bookmark": "<<RefFigura_sec_2_3>>",
             "estilo_figura":"Figura",
             "estilo_titulo": "Carcentrado"
         }],
@@ -149,7 +149,7 @@ diccionario_de_tablas = {
             }
 }
 
-ezw.reemplazar_texto_en_plantilla(doc, dict_de_reemplazos) # Esto pondría en el documento los contenidos del ejemplo 1, 2, 3 y 5.
+# ezw.reemplazar_texto_en_plantilla(doc, dict_de_reemplazos) # Esto pondría en el documento los contenidos del ejemplo 1, 2, 3 y 5.
 # ezw.reemplazar_texto_en_plantilla(doc, nuevas_variables) # Esto pondría en el documento los contenidos del ejemplo 1 y 5.
 # El ejemplo 5 es una sección, que introduce más variables nuevas al documento, como <<titulo_1>>, <<contenido_1>>, 
 # <<fig_sec_1>>, etc. Estas variables también se reemplazarán en esta misma llamada a reemplazar_texto_en_plantilla,
@@ -157,8 +157,15 @@ ezw.reemplazar_texto_en_plantilla(doc, dict_de_reemplazos) # Esto pondría en el
 # y reemplazarlas también. Pero esto solo pasará si dentro de diccionario_de_reemplazos, existen esas variables.
 # En este ejemplo el diccionario_de_reemplazos incluye las variables.
 
-ezw.reemplazar_variable_por_figura(doc, dict_de_reemplazos)
-ezw.reemplazar_referencias_cruzadas_de_figuras(doc, dict_de_reemplazos)
+# Nota Se pueden correr todos los reemplazos de una sola vez si se unen los diccionarios:
+# ejemplo
+dict_unido = dict_de_reemplazos | nuevas_variables
+ezw.reemplazar_texto_en_plantilla(doc, dict_unido) # Esto pondría en el documento los contenidos del ejemplo 1 y 5.
+
+
+ezw.reemplazar_variable_por_figura(doc, dict_unido) # Pone las figuras sin título y con título.
+# ezw.reemplazar_variable_por_figura(doc, nuevas_variables) # Hace el ejemplo de la sección de prueba; poner varias figuras seguidas
+ezw.reemplazar_referencias_cruzadas_de_figuras(doc, dict_unido)
 ezw.reemplazar_variable_por_tabla(doc, diccionario_de_tablas)
 
 
