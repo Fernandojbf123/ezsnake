@@ -7,43 +7,65 @@ ruta_plantilla =  "C:\\programacion\\codigos_python\\ezsnake\\tests\\demo.docx"
 doc = Document(ruta_plantilla)  
 
 # Primera parte: Crear el diccionario de reemplazos
+dict_de_reemplazos = {}
 
 # Ejemplo 1: Reemplazo de texto en párrafos (dentro de párrafos o creación de párrafos nuevos)
-dict_de_reemplazos = {
-    "<<fecha>>": "03 de junio de 2026",
-    "<<nombre_de_cliente>>": "BelloDev",
-    "<<mes>>": "junio",
-    "<<anio>>": "2026",
-    "<<parrafos_previos>>": [
-        ("Con el modulo de ezword se pueden crear parrafos con diferentes estilos.", "Normal"),
-        ('Como por ejemplo, este párrafo con estilo "Negritas""', 'Negritas')]
-}
+dict_de_reemplazos["<<fecha>>"] = "03 de junio de 2026"
 
-# Ejemplo 2: insertar una lista
-dict_de_reemplazos["<<lista_de_objetivos>>"] = [ 
-                ("Primera recomendación","Normal"),
-                ("Segunda recomendación","Normal")]
+# Ejemplo 2: Reemplazo de varias variables respetando formatos y referencias.
+dict_de_reemplazos["<<nombre_del_programador>>"] = "BelloDev"
+
+# Ejemplo 3: Reemplazar una variable por todo un párrafo y asignarle un estilo a dicho párrafo. 
+# Ahora, usemos una fecha calculada para el día de hoy.
+fecha_hoy = pd.Timestamp.now().strftime("%d de %B de %Y") 
+dict_de_reemplazos["<<parrafos_previos>>"] = [
+    ('Algo interesante del módulo word_template_writer de ezsnake es que se pueden crear parrafos con diferentes estilos. Para asignarle estilos a un párrafo, se necesita tener el estilo guardado en la plantilla de Word. Por ejemplo, este párrafo tiene estilo "Normal".', "Normal"),
+    ("","Normal"),
+    (f'Este otro párrafo con estilo "Negritas" y usando una fecha calculada desde código: {fecha_hoy}', 'Negritas'),
+    ("","Normal"),
+    ('Este último párrafo tiene estilo "Normal_sin_sangria"', "Normal_sin_sangria")
+]
 
 
-# Ejemplo 3: insertar una figura sin título
-dict_de_reemplazos["<<fig_sin_titulo>>"] = [{
+# Ejemplo 4: insertar una lista
+dict_de_reemplazos["<<lista_ejemplo>>"] = [ 
+    "Primer punto de la lista.",
+    "Segundo punto de la lista.",
+    "Tercer punto de la lista.",
+    "Puedes poner cuantos puntos quieras."
+]
+
+
+# Ejemplo 5: insertar una figura sin título
+# El formato de código para generar una figura es como sigue:
+
+dict_de_reemplazos["<<fig_sin_titulo>>"] = [
+    {
         "ruta": "C:\\programacion\\codigos_python\\ezsnake\\tests\\figuras_demo\\fig_sec_1_1.jpg",
         "titulo": "", # No lleva título porque ya está en el documento
-        "tamanio": 2,
-        "bookmark": "", # No lleva bookmark porque ya está en el documento
+        "tamanio": 2, # El tamaño de la figura 
+        "bookmark": "", # No lleva bookmark porque ya está en el documento (el bookmark es el título del a figura en word)
         "estilo_figura":"Figura",
         "estilo_titulo": "Carcentrado"
-    }]
+    }
+]
 
 
-dict_de_reemplazos["<<fig_con_titulo>>"] = [{
-        "ruta": "C:\\programacion\\codigos_python\\ezsnake\\tests\\figuras_demo\\fig_sec_1_1.jpg",
-        "titulo": "Se ve la carita de una niña", # Título personalizado para esta figura
+# Ejemplo 6: insertar una figura con título
+titulo_de_figura = "Robert Downie Jr. suspirando porque el titulo salió con estilo Carjustificado porque supera los 150 caracteres y todo está excelentemente bien", 
+titulo_de_figura = "Como el título es corto. Ahora debe salir con estilo Carcentrado"
+dict_de_reemplazos["<<fig_con_titulo>>"] = [
+    {
+        "ruta": "C:\\programacion\\codigos_python\\ezsnake\\tests\\figuras_demo\\fig_sec_1_2.jpg",
+        "titulo": titulo_de_figura, # Título personalizado para esta figura
         "tamanio": 2,
         "bookmark": "<<RefFigura_con_titulo>>", 
         "estilo_figura":"Figura",
-        "estilo_titulo": "Carcentrado"
-    }]
+        "estilo_titulo": "Carjustificado" if len(titulo_de_figura) > 150 else "Carcentrado"
+    }
+]
+
+## Quedé acá. Debo modificar esta parte para que avancemos
 
 # Ejemplo 5: Creación de secciones en el documento, un título, varios párrafos, figuras e imágenes
 dict_de_reemplazos["<<sec_prueba>>"] = [
