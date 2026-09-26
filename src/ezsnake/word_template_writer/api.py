@@ -20,9 +20,9 @@ Functions:
 from ._figure_helpers import (
     aux_insertar_figura_sin_titulo,
     aux_insertar_figuras_con_titulo,
-    aux_insertar_referencia_cruzada,
+    construir_elementos_referencia_cruzada,
 )
-from ._text_helpers import replace_text_variables_in_paragraph
+from ._text_helpers import replace_text_variables_in_paragraph, _run_contiene_campo_complejo
 from ._document_helpers import insert_external_document
 from ._table_helpers import (
     fill_table,
@@ -176,62 +176,141 @@ def reemplazar_referencias_cruzadas_de_figuras(doc, diccionario_de_reemplazos: d
     variables_validas = {k: v for k, v in diccionario_de_reemplazos.items() 
                         if v is not None and k.startswith("<<reffigura")}
     
-    # Para cada párrafo
+    def _piezas(lista_bookmarks):
+        primer_bookmark = lista_bookmarks[0]
+        ultimo_bookmark = lista_bookmarks[-1]
+        if len(lista_bookmarks) == 1:
+            # Caso: Solo una figura - "Figura X"
+            return [("ref", primer_bookmark, "Figura")]
+        # Caso: Múltiples figuras - "Figura X a la Y"
+        return [
+            ("ref", primer_bookmark, "Figura"),
+            ("text", " a la "),
+            ("ref", ultimo_bookmark, "Figura"),
+        ]
+
     for parrafo in doc.paragraphs:
-        full_text = "".join(run.text for run in parrafo.runs)
-        
-        # Encontrar TODOS los marcadores <<reffigura*>> en este párrafo
-        marcadores_en_parrafo = []
-        for variable_ref, lista_bookmarks in variables_validas.items():
-            if variable_ref in full_text:
-                # Encontrar todas las ocurrencias del marcador en el párrafo
-                pos = full_text.find(variable_ref)
-                if pos != -1:
-                    marcadores_en_parrafo.append((pos, variable_ref, lista_bookmarks))
-        
-        # Si no hay marcadores en este párrafo, continuar al siguiente
-        if not marcadores_en_parrafo:
-            continue
-        
-        # Ordenar marcadores por posición (de izquierda a derecha)
-        marcadores_en_parrafo.sort(key=lambda x: x[0])
-        
-        # Limpiar todos los runs del párrafo
-        for run in parrafo.runs:
-            run.text = ""
-        
-        # Reconstruir el párrafo procesando todos los marcadores
-        pos_actual = 0
-        
-        for pos_marcador, variable_ref, lista_bookmarks in marcadores_en_parrafo:
-            # Agregar texto antes del marcador
-            if pos_marcador > pos_actual:
-                texto_antes = full_text[pos_actual:pos_marcador]
-                parrafo.add_run(texto_antes)
-            
-            # Insertar la referencia cruzada
-            primer_bookmark = lista_bookmarks[0]
-            ultimo_bookmark = lista_bookmarks[-1]
-            
-            if len(lista_bookmarks) == 1:
-                # Caso: Solo una figura - "Figura X"
-                aux_insertar_referencia_cruzada(parrafo, primer_bookmark, texto_antes="Figura", mostrar_numero=True)
-            else:
-                # Caso: Múltiples figuras - "Figura X a la Y"
-                aux_insertar_referencia_cruzada(parrafo, primer_bookmark, texto_antes="Figura", mostrar_numero=True)
-                parrafo.add_run(" a la ")
-                aux_insertar_referencia_cruzada(parrafo, ultimo_bookmark, texto_antes="Figura", mostrar_numero=True)
-            
-            # Avanzar posición actual
-            pos_actual = pos_marcador + len(variable_ref)
-        
-        # Agregar texto después del último marcador
-        if pos_actual < len(full_text):
-            texto_despues = full_text[pos_actual:]
-            parrafo.add_run(texto_despues)
+        _procesar_marcadores_referencia_en_parrafo(parrafo, variables_validas, _piezas)
 
     msg = "Referencias cruzadas insertadas."
     print(msg)
+
+
+def _procesar_marcadores_referencia_en_parrafo(parrafo, variables_validas, obtener_piezas):
+    """Reemplaza marcadores <<ref*>> por referencias cruzadas, sin tocar el resto del párrafo.
+
+    A diferencia de una reconstrucción total del párrafo, esto preserva:
+        - El formato (bold/italic/etc.) de los runs que no contienen marcadores.
+        - Cualquier otro campo complejo ya presente (ej: otra referencia cruzada),
+          tratándolo como un límite fijo que no se debe borrar ni mover.
+    """
+    runs = list(parrafo.runs)
+    n = len(runs)
+    i = 0
+    while i < n:
+        if _run_contiene_campo_complejo(runs[i]):
+            i += 1
+            continue
+        j = i
+        tramo = []
+        while j < n and not _run_contiene_campo_complejo(runs[j]):
+            tramo.append(runs[j])
+            j += 1
+        anchor_run = runs[j] if j < n else None
+        _reconstruir_tramo_con_referencias(parrafo, tramo, variables_validas, obtener_piezas, anchor_run)
+        i = j
+
+
+def _reconstruir_tramo_con_referencias(paragraph, tramo, variables_validas, obtener_piezas, anchor_run):
+    """Reemplaza marcadores dentro de `tramo` (runs "normales" contiguos) por referencias cruzadas.
+
+    Preserva el formato original de cada segmento de texto y respeta la posición del
+    tramo en el párrafo (los nuevos elementos se insertan justo antes de `anchor_run`).
+    """
+    texto_original = "".join(run.text for run in tramo)
+
+    # Encontrar todas las ocurrencias de marcadores en este tramo, ordenadas por posición
+    ocurrencias = []
+    for variable_ref, lista_bookmarks in variables_validas.items():
+        start = 0
+        while True:
+            pos = texto_original.find(variable_ref, start)
+            if pos == -1:
+                break
+            ocurrencias.append((pos, variable_ref, lista_bookmarks))
+            start = pos + len(variable_ref)
+
+    if not ocurrencias:
+        return  # Nada que reemplazar: se deja el tramo intacto
+
+    ocurrencias.sort(key=lambda x: x[0])
+
+    # Mapear cada posición del texto original a su formato de run
+    formato_por_posicion = []
+    for run in tramo:
+        formato_run = {
+            'bold': run.bold,
+            'italic': run.italic,
+            'underline': run.underline,
+            'font_name': run.font.name if run.font.name else None,
+            'font_size': run.font.size,
+            'color': run.font.color.rgb if run.font.color.rgb else None,
+        }
+        formato_por_posicion.extend([formato_run] * len(run.text))
+
+    def _formato_en(pos):
+        if not formato_por_posicion:
+            return {}
+        idx = min(max(pos, 0), len(formato_por_posicion) - 1)
+        return formato_por_posicion[idx]
+
+    nuevos_elementos = []
+
+    def _agregar_texto(texto_segmento, formato):
+        if not texto_segmento:
+            return
+        # add_run() agrega el run al final del párrafo; se reposiciona más abajo.
+        new_run = paragraph.add_run(texto_segmento)
+        new_run.bold = formato.get('bold')
+        new_run.italic = formato.get('italic')
+        new_run.underline = formato.get('underline')
+        if formato.get('font_name'):
+            new_run.font.name = formato.get('font_name')
+        if formato.get('font_size'):
+            new_run.font.size = formato.get('font_size')
+        if formato.get('color'):
+            new_run.font.color.rgb = formato.get('color')
+        nuevos_elementos.append(new_run._r)
+
+    pos_actual = 0
+
+    for pos_marcador, variable_ref, lista_bookmarks in ocurrencias:
+        if pos_marcador > pos_actual:
+            _agregar_texto(texto_original[pos_actual:pos_marcador], _formato_en(pos_actual))
+
+        for pieza in obtener_piezas(lista_bookmarks):
+            if pieza[0] == "text":
+                _agregar_texto(pieza[1], _formato_en(pos_marcador))
+            else:
+                _, bookmark, texto_antes_pieza = pieza
+                nuevos_elementos.extend(
+                    construir_elementos_referencia_cruzada(bookmark, texto_antes=texto_antes_pieza, mostrar_numero=True)
+                )
+
+        pos_actual = pos_marcador + len(variable_ref)
+
+    if pos_actual < len(texto_original):
+        _agregar_texto(texto_original[pos_actual:], _formato_en(pos_actual))
+
+    # Reubicar los nuevos elementos justo antes del límite (o dejarlos al final si no hay límite)
+    if anchor_run is not None:
+        anchor_element = anchor_run._r
+        for elem in nuevos_elementos:
+            anchor_element.addprevious(elem)
+
+    # Eliminar los runs originales del tramo (ya reemplazados por los nuevos)
+    for run in tramo:
+        run._r.getparent().remove(run._r)
 
 
 def reemplazar_referencias_cruzadas_de_tablas(doc, diccionario_de_reemplazos: dict):
@@ -267,46 +346,19 @@ def reemplazar_referencias_cruzadas_de_tablas(doc, diccionario_de_reemplazos: di
         if v is not None and (k.startswith("<<refnuevatabla_") or k.startswith("<<reftabla_"))
     }
 
+    def _piezas(lista_bookmarks):
+        primer_bookmark = lista_bookmarks[0]
+        ultimo_bookmark = lista_bookmarks[-1]
+        if len(lista_bookmarks) == 1:
+            return [("ref", primer_bookmark, "Tabla")]
+        return [
+            ("ref", primer_bookmark, "Tabla"),
+            ("text", " a la "),
+            ("ref", ultimo_bookmark, ""),
+        ]
+
     for parrafo in doc.paragraphs:
-        full_text = "".join(run.text for run in parrafo.runs)
-
-        marcadores_en_parrafo = []
-        for variable_ref, lista_bookmarks in variables_validas.items():
-            if variable_ref in full_text:
-                pos = full_text.find(variable_ref)
-                if pos != -1:
-                    marcadores_en_parrafo.append((pos, variable_ref, lista_bookmarks))
-
-        if not marcadores_en_parrafo:
-            continue
-
-        marcadores_en_parrafo.sort(key=lambda x: x[0])
-
-        for run in parrafo.runs:
-            run.text = ""
-
-        pos_actual = 0
-
-        for pos_marcador, variable_ref, lista_bookmarks in marcadores_en_parrafo:
-            if pos_marcador > pos_actual:
-                texto_antes = full_text[pos_actual:pos_marcador]
-                parrafo.add_run(texto_antes)
-
-            primer_bookmark = lista_bookmarks[0]
-            ultimo_bookmark = lista_bookmarks[-1]
-
-            if len(lista_bookmarks) == 1:
-                aux_insertar_referencia_cruzada(parrafo, primer_bookmark, texto_antes="Tabla", mostrar_numero=True)
-            else:
-                aux_insertar_referencia_cruzada(parrafo, primer_bookmark, texto_antes="Tabla", mostrar_numero=True)
-                parrafo.add_run(" a la ")
-                aux_insertar_referencia_cruzada(parrafo, ultimo_bookmark, texto_antes="", mostrar_numero=True)
-
-            pos_actual = pos_marcador + len(variable_ref)
-
-        if pos_actual < len(full_text):
-            texto_despues = full_text[pos_actual:]
-            parrafo.add_run(texto_despues)
+        _procesar_marcadores_referencia_en_parrafo(parrafo, variables_validas, _piezas)
 
     msg = "Referencias cruzadas de tablas insertadas."
     print(msg)

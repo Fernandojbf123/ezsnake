@@ -186,6 +186,62 @@ def aux_insertar_figuras_con_titulo(paragraph, key, lista_figuras):
     return bookmarks_creados
 
 
+def construir_elementos_referencia_cruzada(nombre_bookmark, texto_antes="Figura", mostrar_numero=True):
+    """Construye los elementos <w:r> (sin adjuntarlos a ningún párrafo) de una referencia cruzada.
+
+    Permite insertar la referencia en una posición arbitraria del párrafo (ej: con
+    `elemento.addprevious(...)`), en vez de solo poder anexarla al final.
+
+    Returns:
+        Lista de elementos OxmlElement ('w:r') a insertar en orden.
+    """
+    elementos = []
+
+    if texto_antes:
+        run_texto = OxmlElement('w:r')
+        text_texto = OxmlElement('w:t')
+        text_texto.set(qn('xml:space'), 'preserve')
+        text_texto.text = texto_antes + " "
+        run_texto.append(text_texto)
+        elementos.append(run_texto)
+
+    # Crear el run para el campo REF
+    run = OxmlElement('w:r')
+
+    fldChar_begin = OxmlElement('w:fldChar')
+    fldChar_begin.set(qn('w:fldCharType'), 'begin')
+
+    instrText = OxmlElement('w:instrText')
+    instrText.set(qn('xml:space'), 'preserve')
+    # \r muestra solo el número de secuencia (SEQ), \h hace el campo clickable (hyperlink)
+    if mostrar_numero:
+        instrText.text = f' REF {nombre_bookmark} \\h '
+    else:
+        instrText.text = f' REF {nombre_bookmark} \\r \\h '
+
+    fldChar_separate = OxmlElement('w:fldChar')
+    fldChar_separate.set(qn('w:fldCharType'), 'separate')
+
+    # Texto por defecto (se actualizará en Word con F9)
+    text_run = OxmlElement('w:r')
+    text_elem = OxmlElement('w:t')
+    text_elem.text = "XX"  # Placeholder que Word actualizará
+    text_run.append(text_elem)
+
+    fldChar_end = OxmlElement('w:fldChar')
+    fldChar_end.set(qn('w:fldCharType'), 'end')
+
+    run.append(fldChar_begin)
+    run.append(instrText)
+    run.append(fldChar_separate)
+    run.append(text_run)
+    run.append(fldChar_end)
+
+    elementos.append(run)
+
+    return elementos
+
+
 def aux_insertar_referencia_cruzada(paragraph, nombre_bookmark, texto_antes="Figura", mostrar_numero=True):
     """Inserta una referencia cruzada a una figura en un párrafo.
     
@@ -200,43 +256,8 @@ def aux_insertar_referencia_cruzada(paragraph, nombre_bookmark, texto_antes="Fig
         p = doc.add_paragraph("Como se muestra en la ")
         aux_insertar_referencia_cruzada(p, "RefFigura_Mi_Figura", "Figura")
     """
-    # Agregar texto antes si se proporciona
-    if texto_antes:
-        run_texto = paragraph.add_run(texto_antes + " ")
-    
-    # Crear el run para el campo REF
-    run = paragraph.add_run()
-    
-    # Crear el campo REF para la figura
-    fldChar_begin = OxmlElement('w:fldChar')
-    fldChar_begin.set(qn('w:fldCharType'), 'begin')
-    
-    instrText = OxmlElement('w:instrText')
-    instrText.set(qn('xml:space'), 'preserve')
-    # \r muestra solo el número de secuencia (SEQ), \h hace el campo clickable (hyperlink)
-    if mostrar_numero:
-        instrText.text = f' REF {nombre_bookmark} \\h '
-    else:
-        instrText.text = f' REF {nombre_bookmark} \\r \\h '
-    
-    fldChar_separate = OxmlElement('w:fldChar')
-    fldChar_separate.set(qn('w:fldCharType'), 'separate')
-    
-    # Texto por defecto (se actualizará en Word con F9)
-    text_run = OxmlElement('w:r')
-    text_elem = OxmlElement('w:t')
-    text_elem.text = "XX"  # Placeholder que Word actualizará
-    text_run.append(text_elem)
-    
-    fldChar_end = OxmlElement('w:fldChar')
-    fldChar_end.set(qn('w:fldCharType'), 'end')
-    
-    # Agregar elementos al run
-    run._element.append(fldChar_begin)
-    run._element.append(instrText)
-    run._element.append(fldChar_separate)
-    run._element.append(text_run)
-    run._element.append(fldChar_end)
+    for elemento in construir_elementos_referencia_cruzada(nombre_bookmark, texto_antes, mostrar_numero):
+        paragraph._p.append(elemento)
 
 
 def crear_pie_de_figura(parent, indice, titulo, bookmark_name=None, estilo_titulo='Normal'):

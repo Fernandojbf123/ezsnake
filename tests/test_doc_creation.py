@@ -1,9 +1,11 @@
+import os
 import ezsnake.word_template_writer as ezw
 from docx import Document
 import pandas as pd
 
 
-ruta_plantilla =  "C:\\programacion\\codigos_python\\ezsnake\\tests\\demo.docx"
+
+ruta_plantilla =  os.path.join(os.getcwd(), "tests", "demo.docx")
 doc = Document(ruta_plantilla)  
 
 # Primera parte: Crear el diccionario de reemplazos
@@ -39,9 +41,9 @@ dict_de_reemplazos["<<lista_ejemplo>>"] = [
 # Ejemplo 5: insertar una figura sin título
 # El formato de código para generar una figura es como sigue:
 
-dict_de_reemplazos["<<fig_sin_titulo>>"] = [
+dict_de_reemplazos["<<fig_sintitulo>>"] = [
     {
-        "ruta": "C:\\programacion\\codigos_python\\ezsnake\\tests\\figuras_demo\\fig_sec_1_1.jpg",
+        "ruta": os.path.join(os.getcwd(), "tests", "figuras_demo", "fig_sec_1_1.jpg"),
         "titulo": "", # No lleva título porque ya está en el documento
         "tamanio": 2, # El tamaño de la figura 
         "bookmark": "", # No lleva bookmark porque ya está en el documento (el bookmark es el título del a figura en word)
@@ -52,22 +54,102 @@ dict_de_reemplazos["<<fig_sin_titulo>>"] = [
 
 
 # Ejemplo 6: insertar una figura con título
-titulo_de_figura = "Robert Downie Jr. suspirando porque el titulo salió con estilo Carjustificado porque supera los 150 caracteres y todo está excelentemente bien", 
-titulo_de_figura = "Como el título es corto. Ahora debe salir con estilo Carcentrado"
-dict_de_reemplazos["<<fig_con_titulo>>"] = [
+titulo_de_figura = "Robert Downie Jr. suspirando porque el titulo salió con estilo Carjustificado porque supera los 150 caracteres y todo está excelentemente bien" 
+# titulo_de_figura = "Como el título es corto. Ahora debe salir con estilo Carcentrado"
+
+estilo_titulo_de_figura = "Carjustificado" if len(titulo_de_figura) > 120 else "Carcentrado"
+
+dict_de_reemplazos["<<fig_contitulo>>"] = [
     {
-        "ruta": "C:\\programacion\\codigos_python\\ezsnake\\tests\\figuras_demo\\fig_sec_1_2.jpg",
+        "ruta": os.path.join(os.getcwd(), "tests", "figuras_demo", "fig_sec_1_2.jpg"),
         "titulo": titulo_de_figura, # Título personalizado para esta figura
         "tamanio": 2,
-        "bookmark": "<<RefFigura_con_titulo>>", 
+        "bookmark": "<<RefFigura_contitulo>>", 
         "estilo_figura":"Figura",
-        "estilo_titulo": "Carjustificado" if len(titulo_de_figura) > 150 else "Carcentrado"
+        "estilo_titulo": estilo_titulo_de_figura
     }
 ]
 
+# Ejemplo 7: Rellenar una tabla existente
+
+# Ejemplo 7.1: Rellenar tabla y editar algunas propiedades de esta
+estilos = ezw.EstilosTabla() # Crear la instancia de estilos; esto permite aplicar estilos del documento de word a la tabla
+opciones = ezw.OpcionesTabla() # Crear la instancia de opciones; esto permite configurar opciones específicas para la tabla
+
+# Creare una tabla de tres filas y tres columnas.
+# El dataframe tiene los datos de la tabla
+df = pd.DataFrame(
+    {
+        "Nombre": ["Fernando","José","Azeroth"], 
+        "Apellido": ["Bello", "Fuentes", "Stormrage"],
+        "Edad": [21, 23, 2500]
+    }
+)
+
+# Supongamos que ahora; supongamos que la columna Edad debe ir en un estilo justificado; y que las otras dos columnas van en centrado
+# Dentro del word existe el estilo texto_tabla_justificado
+estilos.set_estilo_de_columna(0, 'tabla_texto_centrado') # La columna 0 es la columna Nombre
+estilos.set_estilo_de_columna(1, 'tabla_texto_centrado') # La columna 1 es la columna Apellido
+estilos.set_estilo_de_columna(2, 'tabla_texto_justificado') # La columna 2 es la columna Edad
+
+# Nota: También se pueden asignar colores a una celda o a una columna entera; recomiendo leer el la ayuda de la clase EstilosTabla
+estilos.set_color_de_celda(celda = (2,2), color = (75, 120, 200)) # acá estoy poniendo este color azul a la ultima celda
+# Ahora las opciones; 
+dict_de_reemplazos["<<editartabla_tabla_1>>"] = {
+    "tabla": df,
+    "estilos_de_tabla": estilos,
+    "opciones_de_tabla": opciones,
+}
+
+# Ejemplo 7.2:Rellenar tabla agrupando valores.
+# Ejemplo 7.1: Rellenar tabla y editar algunas propiedades de esta
+estilos = ezw.EstilosTabla() # Crear la instancia de estilos; esto permite aplicar estilos del documento de word a la tabla
+opciones = ezw.OpcionesTabla() # Crear la instancia de opciones; esto permite configurar opciones específicas para la tabla
+
+# Creare una tabla de tres filas y tres columnas.
+
+# El dataframe tiene los datos de la tabla
+df = pd.DataFrame(
+    {
+        "Nombre": ["Fernando","Fernando","Fernando","José"], 
+        "Apellido": ["Bello", "Fuentes", "Stormrage", "Bello"],
+        "Edad": [21, 23, 2500, 40]
+    }
+)
+
+# Ejemplo, combinar la primera columna
+opciones.set_detectar_merge(detectar=True)  # Activar la detección de combinación para la tabla
+opciones.set_columnas_para_merge(columnas=[0])  
+dict_de_reemplazos["<<editartabla_tabla_2>>"] = {
+    "tabla": df,
+    "estilos_de_tabla": estilos,
+    "opciones_de_tabla": opciones,
+}
+
+# Poner estilos de la tabla 2
+estilos.set_estilo_de_columna(0, 'tabla_texto_centrado') # La columna 0 es la columna Nombre
+estilos.set_estilo_de_columna(1, 'tabla_texto_centrado') # La columna 1 es la columna Apellido
+estilos.set_estilo_de_columna(2, 'tabla_texto_centrado') # La columna 2 es la columna Edad
+
+
+# Ejemplo 7.2: Crear una tabla desde cero; incluyendo título y referencias cruzadas.
+
 ## Quedé acá. Debo modificar esta parte para que avancemos
 
-# Ejemplo 5: Creación de secciones en el documento, un título, varios párrafos, figuras e imágenes
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Ejemplo 9: Agregar una sección
 dict_de_reemplazos["<<sec_prueba>>"] = [
         ( "<<titulo_1>>", "subtitulo"),    
         ("",""),
@@ -100,7 +182,7 @@ nuevas_variables = {
     "<<contenido_1>>": "En esta sección se muestran los resultados obtenidos en el experimento 1.",
     "<<contenido_1_parte2>>": "Además, se observa que los resultados son consistentes con lo esperado.",
     "<<fig_sec_1>>": [{
-            "ruta": "C:\\programacion\\codigos_python\\ezsnake\\tests\\figuras_demo\\fig_sec_1_1.jpg",
+            "ruta": os.path.join(os.getcwd(), "tests", "figuras_demo", "fig_sec_1_1.jpg"),
             "titulo": "Momardo 1-1",
             "tamanio": 2,
             "bookmark": "<<RefFigura_sec_1_1>>",
@@ -108,7 +190,7 @@ nuevas_variables = {
             "estilo_titulo": "Carcentrado"
         },
         {
-            "ruta": "C:\\programacion\\codigos_python\\ezsnake\\tests\\figuras_demo\\fig_sec_1_2.jpg",
+            "ruta": os.path.join(os.getcwd(), "tests", "figuras_demo", "fig_sec_1_2.jpg"),
             "titulo": "Momardo 1-2",
             "tamanio": 2,
             "bookmark": "<<RefFigura_sec_1_2>>",
@@ -116,7 +198,7 @@ nuevas_variables = {
             "estilo_titulo": "Carcentrado"
         },
         {
-            "ruta": "C:\\programacion\\codigos_python\\ezsnake\\tests\\figuras_demo\\fig_sec_1_3.jpg",
+            "ruta": os.path.join(os.getcwd(), "tests", "figuras_demo", "fig_sec_1_3.jpg"),
             "titulo": "Momardo 1-3",
             "tamanio": 2,
             "bookmark": "<<RefFigura_sec_1_3>>",
@@ -126,7 +208,7 @@ nuevas_variables = {
     "<<titulo_2>>": "Resultados de la sección 2.",
     "<<contenido_2>>": "En esta sección se muestran los resultados obtenidos en el experimento 2.",
     "<<fig_sec_2>>": [{
-            "ruta": "C:\\programacion\\codigos_python\\ezsnake\\tests\\figuras_demo\\fig_sec_2_1.jpg",
+            "ruta": os.path.join(os.getcwd(), "tests", "figuras_demo", "fig_sec_2_1.jpg"),
             "titulo": "Momardo 2-1",
             "tamanio": 2,
             "bookmark": "<<RefFigura_sec_2_1>>",
@@ -134,7 +216,7 @@ nuevas_variables = {
             "estilo_titulo": "Carcentrado"
         },
         {
-            "ruta": "C:\\programacion\\codigos_python\\ezsnake\\tests\\figuras_demo\\fig_sec_2_2.jpg",
+            "ruta": os.path.join(os.getcwd(), "tests", "figuras_demo", "fig_sec_2_2.jpg"),
             "titulo": "Momardo 2-2",
             "tamanio": 2,
             "bookmark": "<<RefFigura_sec_2_2>>",
@@ -142,7 +224,7 @@ nuevas_variables = {
             "estilo_titulo": "Carcentrado"
         },
         {
-            "ruta": "C:\\programacion\\codigos_python\\ezsnake\\tests\\figuras_demo\\fig_sec_2_3.jpg",
+            "ruta": os.path.join(os.getcwd(), "tests", "figuras_demo", "fig_sec_2_3.jpg"),
             "titulo": "Momardo 2-3",
             "tamanio": 2,
             "bookmark": "<<RefFigura_sec_2_3>>",
@@ -182,13 +264,13 @@ diccionario_de_tablas = {
 # Nota Se pueden correr todos los reemplazos de una sola vez si se unen los diccionarios:
 # ejemplo
 dict_unido = dict_de_reemplazos | nuevas_variables
-ezw.reemplazar_texto_en_plantilla(doc, dict_unido) # Esto pondría en el documento los contenidos del ejemplo 1 y 5.
+ezw.reemplazar_texto_en_plantilla(doc, dict_de_reemplazos) # Esto pondría en el documento los contenidos del ejemplo 1 y 5.
 
+ezw.reemplazar_variable_por_figura(doc, dict_de_reemplazos) # Pone las figuras sin título y con título.
+ezw.reemplazar_referencias_cruzadas_de_figuras(doc, dict_de_reemplazos)
 
-ezw.reemplazar_variable_por_figura(doc, dict_unido) # Pone las figuras sin título y con título.
-# ezw.reemplazar_variable_por_figura(doc, nuevas_variables) # Hace el ejemplo de la sección de prueba; poner varias figuras seguidas
-ezw.reemplazar_referencias_cruzadas_de_figuras(doc, dict_unido)
-ezw.reemplazar_variable_por_tabla(doc, diccionario_de_tablas)
+ezw.rellenar_tablas_en_plantilla(doc, dict_de_reemplazos)
 
+# ezw.reemplazar_variable_por_tabla(doc, diccionario_de_tablas)
 
-doc.save("C:\\programacion\\codigos_python\\ezsnake\\tests\\doc_listo.docx")
+doc.save(os.path.join(os.getcwd(), "tests", "doc_listo.docx"))

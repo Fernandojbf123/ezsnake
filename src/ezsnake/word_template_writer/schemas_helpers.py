@@ -68,7 +68,7 @@ class EstilosTabla:
     Example:
         >>> from docx import Document
         >>> doc = Document('plantilla.docx')
-        >>> estilos = EstilosTabla(doc)
+        >>> estilos = EstilosTabla()
         >>> estilos.set_color_de_columna(1, (230, 230, 250))
         >>> estilos.set_estilo_de_columna(1, 'texto_tablas_justificado')
         >>> config_dict = estilos.to_dict()
@@ -79,7 +79,7 @@ class EstilosTabla:
         Inicializa EstilosTabla con valores por defecto.
         
         Args:
-            doc: Objeto Document de python-docx para validar estilos
+            # doc: Objeto Document de python-docx para validar estilos (ya no es necesario)
         """
         self._config = {}
         self.set_default()  # Aplica valores por defecto automáticamente
