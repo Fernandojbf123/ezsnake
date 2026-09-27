@@ -307,6 +307,9 @@ def _reconstruir_tramo_con_referencias(paragraph, tramo, variables_validas, obte
         anchor_element = anchor_run._r
         for elem in nuevos_elementos:
             anchor_element.addprevious(elem)
+    else:
+        for elem in nuevos_elementos:
+            paragraph._p.append(elem)
 
     # Eliminar los runs originales del tramo (ya reemplazados por los nuevos)
     for run in tramo:
@@ -375,8 +378,9 @@ def reemplazar_variable_por_tabla(doc, diccionario_de_reemplazos: dict):
         {
             "tabla": pd.DataFrame,
             "estilos_de_tabla": dict,
-            "titulo": "Texto del título de tabla",
             "bookmark": "RefTabla_MiTabla"
+            "titulo": "Texto del título de tabla",
+            "estilo_de_titulo": "Carcentrado"
         }
 
     Comportamiento:
@@ -399,8 +403,9 @@ def reemplazar_variable_por_tabla(doc, diccionario_de_reemplazos: dict):
             "<<nuevatabla_resultados>>": {
                 "tabla": df,
                 "estilos_de_tabla": estilos,
-                "titulo": "Resultados del análisis",
                 "bookmark": "RefTabla_Resultados_1",
+                "titulo": "Resultados del análisis",
+                "estilo_de_titulo": "Carcentrado"
             }
         }
 

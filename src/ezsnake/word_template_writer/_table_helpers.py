@@ -575,7 +575,7 @@ def _insert_table_after_paragraph(doc, paragraph, rows: int, cols: int):
     return table
 
 
-def _insert_title_before_table(table, titulo: str, bookmark: str, estilo_titulo: str = "Normal"):
+def _insert_title_before_table(table, titulo: str, bookmark: str, estilo_titulo: str = "Caption"):
     """Inserta un caption de tabla numerado con bookmark antes de una tabla."""
     if not titulo or not bookmark:
         return
@@ -672,7 +672,7 @@ def crear_tabla_desde_marcador(
     opciones_tabla: Union[OpcionesTabla, dict, None] = None,
     titulo: str = "",
     bookmark: str = "",
-    estilo_titulo: str = "Normal",
+    estilo_titulo: str = "Caption",
 ):
     """
     Crea una tabla nueva desde cero a partir de un marcador en un parrafo.
@@ -787,8 +787,9 @@ def procesar_reemplazar_variable_por_tabla(doc, diccionario_de_reemplazos: dict)
         tabla_df = config_tabla["tabla"]
         estilos_de_tabla = config_tabla.get("estilos_de_tabla")
         opciones_tabla = config_tabla.get("opciones_de_tabla")
-        titulo_tabla = config_tabla["titulo"]
         bookmark_tabla = config_tabla.get("bookmark") or _crear_bookmark_de_tabla_desde_variable(variable)
+        titulo_tabla = config_tabla["titulo"]
+        estilo_de_titulo = config_tabla.get("estilo_de_titulo") or "Caption"
 
         if not isinstance(bookmark_tabla, str) or not bookmark_tabla.startswith("RefTabla"):
             raise ValueError(
@@ -803,7 +804,7 @@ def procesar_reemplazar_variable_por_tabla(doc, diccionario_de_reemplazos: dict)
             opciones_tabla=opciones_tabla,
             titulo=titulo_tabla,
             bookmark=bookmark_tabla,
-            estilo_titulo="Caption",
+            estilo_titulo=estilo_de_titulo,
         )
 
         variable_ref_key = variable.replace("<<nuevatabla_", "<<refnuevatabla_", 1)

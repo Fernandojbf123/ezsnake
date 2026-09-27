@@ -27,3 +27,11 @@ Version 0.3.13
 - Se mejora el documento de ejemplo y sus ejemplos para abarcar más casos de uso.
 Pendientes:
 - Verificar que no se borren las referencias cruzadas al insertar referencias cruzadas de figuras o tablas.
+
+
+Version 0.3.14
+- Se agrega soporte para definir el estilo del título de las tablas al crear nuevas tablas.
+- Se agrega una documentación descriptiva con ejemplos de cada funcionalidad del módulo word_template_writer.
+- Se corrige un bug en el que las referencias a figuras solo se insertaban una sola vez. Ahora, se insertan tantas veces sean llamadas en el documento de word.
+
+
