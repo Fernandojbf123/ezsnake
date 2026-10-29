@@ -681,13 +681,17 @@ class TablaSchema:
         self,
         tabla: Optional[pd.DataFrame] = None,
         estilos_de_tabla: Optional[dict] = None,
+        opciones_de_tabla: Optional[dict] = None,
         titulo: str = "",
         bookmark: str = "",
+        estilo_de_titulo: str = ""
     ):
         self.tabla = tabla if tabla is not None else pd.DataFrame()
         self.estilos_de_tabla = estilos_de_tabla if estilos_de_tabla is not None else {}
+        self.opciones_de_tabla = opciones_de_tabla if opciones_de_tabla is not None else {}
         self.titulo = titulo
         self.bookmark = bookmark
+        self.estilo_de_titulo = estilo_de_titulo
 
     def _validar(self):
         if not isinstance(self.tabla, pd.DataFrame):
@@ -698,6 +702,9 @@ class TablaSchema:
 
         if not isinstance(self.estilos_de_tabla, dict):
             raise ValueError("estilos_de_tabla debe ser un diccionario")
+
+        if not isinstance(self.opciones_de_tabla, dict):
+            raise ValueError("opciones_de_tabla debe ser un diccionario")
 
         if not isinstance(self.titulo, str) or not self.titulo.strip():
             raise ValueError("titulo debe ser string no vacío")
@@ -710,6 +717,9 @@ class TablaSchema:
 
     def set_titulo(self, titulo: str):
         self.titulo = titulo.strip()
+        
+    def set_estilo_de_titulo(self, estilo_de_titulo: str):
+        self.estilo_de_titulo = estilo_de_titulo.strip()
 
     def set_bookmark(self, nombre_referencia: str):
         self.bookmark = f"RefTabla_{nombre_referencia}".strip()
@@ -719,6 +729,8 @@ class TablaSchema:
         return {
             "tabla": self.tabla,
             "estilos_de_tabla": self.estilos_de_tabla,
+            "opciones_de_tabla": self.opciones_de_tabla,
             "titulo": self.titulo,
             "bookmark": self.bookmark,
+            "estilo_de_titulo": self.estilo_de_titulo,
         }
