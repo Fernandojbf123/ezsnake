@@ -78,7 +78,18 @@ pip install -e .
 
 ---
 
-## 📝 Ejemplo de uso
+## 📝 Ejemplos de uso
+
+
+1. word_template_writer
+Ver el ejemplo completo de uso con estos 3 archivos
+- **test/test_doc_creation.py**: contiene todo el codigo para crear cada ejemplo
+- **test/demo.docx**: es el documento plantilla con estilos y variables
+- **test/doc_listo.docx**: es el documento resultante de correr el código **test_doc_creation.py**
+
+2. utils
+
+3. matlab
 
 ```python
 from ezsnake.netcdf import load_nc, view_att, dict2nc

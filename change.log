@@ -35,3 +35,8 @@ Version 0.3.14
 - Se corrige un bug en el que las referencias a figuras solo se insertaban una sola vez. Ahora, se insertan tantas veces sean llamadas en el documento de word.
 
 
+Version 0.3.15
+- Se agrega soporte para definir el estilo del título de las tablas al crear nuevas tablas.
+- Se agrega soporte para definir opciones de tabla al crear nuevas tablas.
+- Ahora con la clase TablaSchema puede manejar estilos de titulo, opciones de tabla y estilos de tablas.
+- Se incluye la ruta a los ejemplos del uso de word_template_writer (EZWORD)
