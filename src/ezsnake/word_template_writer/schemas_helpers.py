@@ -714,6 +714,12 @@ class TablaSchema:
 
     def set_tabla(self, tabla: pd.DataFrame):
         self.tabla = tabla
+        
+    def set_estilo_de_tabla(self, estilos_de_tabla: dict):
+        self.estilos_de_tabla = estilos_de_tabla
+        
+    def set_opciones_de_tabla(self, opciones_de_tabla: dict):
+        self.opciones_de_tabla = opciones_de_tabla
 
     def set_titulo(self, titulo: str):
         self.titulo = titulo.strip()
